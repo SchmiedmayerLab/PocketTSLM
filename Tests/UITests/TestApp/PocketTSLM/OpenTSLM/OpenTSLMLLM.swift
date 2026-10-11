@@ -10,6 +10,7 @@ import Foundation
 import MLX
 import MLXLMCommon
 import OSLog
+import PocketTSLM
 import SpeziLLM
 import SpeziLLMLocal
 import Tokenizers

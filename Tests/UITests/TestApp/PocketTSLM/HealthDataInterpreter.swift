@@ -9,6 +9,7 @@
 import Foundation
 import Hub
 import OSLog
+import PocketTSLM
 import Spezi
 import MLX
 import MLXLMCommon
@@ -83,7 +84,7 @@ class HealthDataInterpreter: DefaultInitializable, Module, EnvironmentAccessible
         // Make the MLX factory build our embedding-capable Llama for "llama"/"mistral"
         // model types, so the session's model can be primed with OpenTSLM soft-prompt
         // embeddings. Idempotent; must run before any LLMModelFactory.shared.loadContainer.
-        EmbeddingLlamaModelRegistration.register()
+        registerModelTypes()
 
         await MainActor.run {
             loadingStage = .stagingModel

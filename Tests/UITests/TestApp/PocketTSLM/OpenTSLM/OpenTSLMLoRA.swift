@@ -12,6 +12,7 @@ import MLXLLM
 import MLXLMCommon
 import MLXNN
 import OSLog
+import PocketTSLM
 import SpeziLLMLocal
 
 /// Loads OpenTSLM LoRA adapters into an ``EmbeddingLlamaModel`` (MLX ``LoRALinear``).

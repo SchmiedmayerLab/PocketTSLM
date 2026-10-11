@@ -180,7 +180,7 @@ private class Attention: Module {
             ropeScaling: args.ropeScaling)
     }
 
-    func callAsFunction(
+    public func callAsFunction(
         _ x: MLXArray, mask: MLXArray? = nil, cache: KVCache?
     ) -> MLXArray {
         let (B, L) = (x.dim(0), x.dim(1))
@@ -247,7 +247,7 @@ private class TransformerBlock: Module {
             dimensions: args.hiddenSize, eps: args.rmsNormEps)
     }
 
-    func callAsFunction(
+    public func callAsFunction(
         _ x: MLXArray, mask: MLXArray? = nil, cache: KVCache?
     ) -> MLXArray {
         var r = attention(inputLayerNorm(x), mask: mask, cache: cache)
@@ -280,7 +280,7 @@ private class EmbeddingLlamaModelInner: Module {
     /// When `inputEmbedding` is supplied it is used directly as the hidden state,
     /// skipping the token-embedding lookup. Llama (unlike Gemma) does not scale
     /// the embeddings, so there is nothing else to reconcile here.
-    func callAsFunction(
+    public func callAsFunction(
         _ inputs: MLXArray?, cache: [KVCache]? = nil, inputEmbedding: MLXArray? = nil
     ) -> MLXArray {
         var h: MLXArray
@@ -308,10 +308,10 @@ private class EmbeddingLlamaModelInner: Module {
 /// pre-computed embeddings. Parameter graph is identical to upstream `LlamaModel`
 /// (same `@ModuleInfo` keys, same nesting), so the factory's weight loading,
 /// quantization, and `verify` all work unchanged.
-class EmbeddingLlamaModel: Module, LLMModel, KVCacheDimensionProvider {
+public class EmbeddingLlamaModel: Module, LLMModel, KVCacheDimensionProvider {
 
-    let vocabularySize: Int
-    let kvHeads: [Int]
+    public let vocabularySize: Int
+    public let kvHeads: [Int]
 
     fileprivate let model: EmbeddingLlamaModelInner
 
@@ -339,11 +339,11 @@ class EmbeddingLlamaModel: Module, LLMModel, KVCacheDimensionProvider {
 
     /// `LLMModel` requirement — token-only path used by normal chat / `TokenIterator`.
     /// Unchanged behaviour vs. upstream `LlamaModel`.
-    func callAsFunction(_ inputs: MLXArray, cache: [KVCache]?) -> MLXArray {
+    public func callAsFunction(_ inputs: MLXArray, cache: [KVCache]?) -> MLXArray {
         forward(inputs, cache: cache, inputEmbedding: nil)
     }
 
-    func sanitize(weights: [String: MLXArray]) -> [String: MLXArray] {
+    public func sanitize(weights: [String: MLXArray]) -> [String: MLXArray] {
         // Remove unused precomputed rotary frequencies
         weights.filter {
             !$0.key.contains("self_attn.rotary_emb.inv_freq")
@@ -354,7 +354,7 @@ class EmbeddingLlamaModel: Module, LLMModel, KVCacheDimensionProvider {
     /// soft-prompt sequences (text token embeddings + projected time-series
     /// embeddings) before priming the decoder via ``inputEmbedding``.
     /// `ids` is an integer index array, e.g. shape `[B, T]`; result is `[B, T, hidden]`.
-    func tokenEmbeddings(_ ids: MLXArray) -> MLXArray {
+    public func tokenEmbeddings(_ ids: MLXArray) -> MLXArray {
         model.embedTokens(ids)
     }
 }
@@ -362,7 +362,7 @@ class EmbeddingLlamaModel: Module, LLMModel, KVCacheDimensionProvider {
 // MARK: - LoRA
 
 extension EmbeddingLlamaModel: LoRAModel {
-    func loraLinearLayers() -> LoRALinearLayers {
+    public func loraLinearLayers() -> LoRALinearLayers {
         model.layers.map { ($0.attention, ["q_proj", "v_proj"]) }
     }
 }
@@ -370,11 +370,11 @@ extension EmbeddingLlamaModel: LoRAModel {
 // MARK: - Embedding-primed decoding (app protocol from MLXEmbeddingGenerator)
 
 extension EmbeddingLlamaModel: EmbeddingPrimedLanguageModel {
-    func makeCache() -> [KVCache] {
+    public func makeCache() -> [KVCache] {
         newCache(parameters: nil)
     }
 
-    func callAsFunction(
+    public func callAsFunction(
         _ inputs: MLXArray?, cache: [KVCache], inputEmbedding: MLXArray?
     ) throws -> MLXArray {
         forward(inputs, cache: cache, inputEmbedding: inputEmbedding)
@@ -489,21 +489,19 @@ struct EmbeddingLlamaConfiguration: Codable, Sendable {
 // MARK: - Factory registration
 
 /// Overrides the `"llama"` (and `"mistral"`) entries in the shared MLX model-type
-/// registry so SpeziLLMLocal's `LLMModelFactory.shared.loadContainer(...)`
-/// instantiates `EmbeddingLlamaModel` instead of the stock `LlamaModel`.
+/// registry so `LLMModelFactory.shared.loadContainer(...)` instantiates
+/// ``EmbeddingLlamaModel`` instead of the stock `LlamaModel`, which cannot take
+/// soft-prompt embeddings.
 ///
-/// Call once at app/Spezi configuration time, *before* the first model load.
-/// The closure mirrors the upstream private `create(_:_:)` helper: the URL it
-/// receives is the `config.json` file itself (not the directory), and it only
-/// builds the bare model — the factory loads/quantizes weights afterwards.
-enum EmbeddingLlamaModelRegistration {
-    static func register() {
-        let creator: @Sendable (URL) throws -> any LanguageModel = { url in
-            let config = try JSONDecoder().decode(
-                EmbeddingLlamaConfiguration.self, from: Data(contentsOf: url))
-            return EmbeddingLlamaModel(config)
-        }
-        LLMModelFactory.shared.typeRegistry.registerModelType("llama", creator: creator)
-        LLMModelFactory.shared.typeRegistry.registerModelType("mistral", creator: creator)
+/// Call once, *before* the first model load. The closure mirrors the upstream private
+/// `create(_:_:)` helper: the URL it receives is the `config.json` file itself (not the
+/// directory), and it only builds the bare model — the factory loads/quantizes weights afterwards.
+public func registerModelTypes() {
+    let creator: @Sendable (URL) throws -> any LanguageModel = { url in
+        let config = try JSONDecoder().decode(
+            EmbeddingLlamaConfiguration.self, from: Data(contentsOf: url))
+        return EmbeddingLlamaModel(config)
     }
+    LLMModelFactory.shared.typeRegistry.registerModelType("llama", creator: creator)
+    LLMModelFactory.shared.typeRegistry.registerModelType("mistral", creator: creator)
 }
