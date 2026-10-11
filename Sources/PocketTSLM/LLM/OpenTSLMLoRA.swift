@@ -12,14 +12,12 @@ import MLXLLM
 import MLXLMCommon
 import MLXNN
 import OSLog
-import PocketTSLM
-import SpeziLLMLocal
 
 /// Loads OpenTSLM LoRA adapters into an ``EmbeddingLlamaModel`` (MLX ``LoRALinear``).
 ///
 /// Mirrors [OpenTSLMMLX](https://github.com/SchmiedmayerLab/OpenTSLMMLX) ``_apply_lora``:
 /// ``linear_to_lora_layers`` on all transformer projections, rank 16, alpha 32 (scale 2), PEFT transpose.
-enum OpenTSLMLoRA {
+public enum OpenTSLMLoRA {
 
     private static let logger = Logger(subsystem: "PocketTSLM", category: "OpenTSLMLoRA")
 
@@ -33,92 +31,11 @@ enum OpenTSLMLoRA {
         "q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj",
     ]
 
-    static func resolveLoRAURL(checkpointName: String = Constants.openTSLMLoRACheckpointName) -> URL? {
-        let fileManager = FileManager.default
-        var candidates: [URL] = []
-
-        // The env-var override always wins (regardless of task) — that's the explicit
-        // "use this exact LoRA file" escape hatch.
-        if !Constants.openTSLMLoRACheckpointPath.isEmpty {
-            let expanded = NSString(string: Constants.openTSLMLoRACheckpointPath).expandingTildeInPath
-            candidates.append(URL(fileURLWithPath: expanded))
-        }
-
-        let stagedOpenTSLM = Constants.openTSLMDocumentsDirectory
-        candidates.append(stagedOpenTSLM.appendingPathComponent("\(checkpointName).safetensors"))
-        candidates.append(stagedOpenTSLM.appendingPathComponent("adapter_model.safetensors"))
-
-        if let bundled = Bundle.main.url(
-            forResource: checkpointName,
-            withExtension: "safetensors",
-            subdirectory: Constants.openTSLMBundleSubdirectory
-        ) {
-            candidates.append(bundled)
-        }
-
-        // Filesystem-synchronized groups in Xcode 16 install supporting-file
-        // resources at the bundle root, not under the source-tree subdirectory.
-        // Fall back to a root lookup so the bundled LoRA is actually found.
-        if let bundledRoot = Bundle.main.url(
-            forResource: checkpointName,
-            withExtension: "safetensors"
-        ) {
-            candidates.append(bundledRoot)
-        }
-        if let bundledAdapter = Bundle.main.url(
-            forResource: "adapter_model",
-            withExtension: "safetensors"
-        ) {
-            candidates.append(bundledAdapter)
-        }
-
-        if let bundleRoot = Bundle.main.resourceURL {
-            let bundledOpenTSLM = bundleRoot.appendingPathComponent(Constants.openTSLMBundleSubdirectory, isDirectory: true)
-            candidates.append(bundledOpenTSLM.appendingPathComponent("\(checkpointName).safetensors"))
-            candidates.append(bundledOpenTSLM.appendingPathComponent("adapter_model.safetensors"))
-        }
-
-        return candidates.first { fileManager.fileExists(atPath: $0.path) }
-    }
-
-    /// Applies LoRA once per in-memory ``EmbeddingLlamaModel`` instance.
-    static func applyLoRAIfNeeded(to model: Module, checkpointURL: URL) throws {
-        guard let llama = model as? EmbeddingLlamaModel else {
-            return
-        }
-        try applyIfNeeded(to: llama, checkpointURL: checkpointURL)
-    }
-
-    /// Apply LoRA on the Spezi session's loaded ``EmbeddingLlamaModel`` (call from OpenTSLM paths only to save RAM at launch).
+    /// Makes `checkpointURL` the active adapter of the container's ``EmbeddingLlamaModel``.
     ///
-    /// `checkpointName` selects which task's LoRA to load — sleep by default. Mixing tasks in
-    /// a single session is not supported: the first task to call this method "wins" for the
-    /// lifetime of the model instance (we track per-instance application to avoid double
-    /// conversion of `Linear`→`LoRALinear`). Tear down and recreate the session to switch.
-    static func applyIfNeeded(
-        on session: LLMLocalSession,
-        checkpointName: String = Constants.openTSLMLoRACheckpointName
-    ) async throws {
-        guard let container = await MainActor.run(body: { session.modelContainer }) else {
-            throw NSError(
-                domain: "OpenTSLMLoRA",
-                code: 1,
-                userInfo: [NSLocalizedDescriptionKey: "LLM session is not ready"]
-            )
-        }
-
-        guard let checkpointURL = resolveLoRAURL(checkpointName: checkpointName) else {
-            logger.warning("OpenTSLM LoRA checkpoint '\(checkpointName, privacy: .public)' not found — running base Llama (set POCKETTSLM_OPEN_TSLM_LORA_CHECKPOINT or bundle \(checkpointName).safetensors).")
-            if Constants.requireLoRACheckpoint {
-                throw NSError(
-                    domain: "OpenTSLMLoRA",
-                    code: 2,
-                    userInfo: [NSLocalizedDescriptionKey: "OpenTSLM LoRA checkpoint '\(checkpointName)' not found"]
-                )
-            }
-            return
-        }
-
+    /// The first call converts the projections to `LoRALinear` once; a later call with another
+    /// checkpoint only swaps the adapter weights, so one loaded base model serves several tasks.
+    public static func applyIfNeeded(to container: ModelContainer, checkpointURL: URL) async throws {
         try await container.perform { context in
             guard let llama = context.model as? EmbeddingLlamaModel else {
                 return

@@ -10,9 +10,6 @@ import Foundation
 import MLX
 import MLXLMCommon
 import OSLog
-import PocketTSLM
-import SpeziLLM
-import SpeziLLMLocal
 import Tokenizers
 
 /// Bridges OpenTSLM soft-prompt embeddings into the on-device Llama decoder.
@@ -27,12 +24,11 @@ import Tokenizers
 public final class OpenTSLMLLM {
 
     private let logger = Logger(subsystem: "PocketTSLM", category: "OpenTSLMLLM")
-    private let llmRunner: LLMRunner
-    private let session: LLMLocalSession
+    private let container: () async -> ModelContainer?
 
-    public init(llmRunner: LLMRunner, session: LLMLocalSession) {
-        self.llmRunner = llmRunner
-        self.session = session
+    /// - Parameter container: Returns the loaded base model, or `nil` while it is not loaded yet.
+    public init(container: @escaping () async -> ModelContainer?) {
+        self.container = container
     }
 
     /// Generate text conditioned on interleaved text + time-series embeddings.
@@ -54,10 +50,10 @@ public final class OpenTSLMLLM {
             timeSeriesText.count == timeSeriesEmbeddings.count,
             "time series text/embedding count mismatch")
 
-        guard let container = await MainActor.run(body: { session.modelContainer }) else {
+        guard let container = await self.container() else {
             throw NSError(
                 domain: "OpenTSLMLLM", code: 1,
-                userInfo: [NSLocalizedDescriptionKey: "LLM session is not ready"])
+                userInfo: [NSLocalizedDescriptionKey: "The base model is not loaded"])
         }
 
         logger.info("generate: entering container.perform (series=\(timeSeriesEmbeddings.count, privacy: .public), maxTokens=\(maxTokens, privacy: .public))")
@@ -68,7 +64,7 @@ public final class OpenTSLMLLM {
                 throw NSError(
                     domain: "OpenTSLMLLM", code: 2,
                     userInfo: [NSLocalizedDescriptionKey:
-                        "Loaded model is \(actual), not EmbeddingLlamaModel — ensure EmbeddingLlamaModelRegistration.register() runs before the model is loaded."])
+                        "Loaded model is \(actual), not EmbeddingLlamaModel — call registerModelTypes() before the model is loaded."])
             }
             let tokenizer = context.tokenizer
             self.logger.info("generate: model OK, building interleaved inputs_embeds")
