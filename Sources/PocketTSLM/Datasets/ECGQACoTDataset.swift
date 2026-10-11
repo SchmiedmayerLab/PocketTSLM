@@ -1,5 +1,12 @@
+//
+// This source file is part of the PocketTSLM open-source project
+//
+// SPDX-FileCopyrightText: 2026 Schmiedmayer Lab and the project authors (see CONTRIBUTORS.md)
+//
+// SPDX-License-Identifier: MIT
+//
+
 import Foundation
-import PocketTSLM
 
 /// On-device ECG-QA CoT loader mirroring OpenTSLM's ``ECGQACoTQADataset`` + ``ecgqa_cot_loader``.
 ///
@@ -12,7 +19,7 @@ public final class ECGQACoTDataset {
         case validation
         case test
 
-        var csvBaseName: String {
+        public var csvBaseName: String {
             switch self {
             case .train: return "ecg_qa_cot_train"
             case .validation: return "ecg_qa_cot_val"
@@ -248,7 +255,7 @@ public final class ECGQACoTDataset {
     // Verbatim from OpenTSLM `ECGQACoTQADataset.py:_get_pre_prompt`.
     /// Verified byte-identical to OpenTSLM's `ECGQACoTQADataset._get_pre_prompt`.
     /// Shared with the HealthKit path so the two cannot drift apart again.
-    static func prePrompt(clinicalContext: String, question: String) -> String {
+    public static func prePrompt(clinicalContext: String, question: String) -> String {
         """
         You are an expert cardiologist analyzing an ECG (electrocardiogram). 
 
@@ -270,7 +277,7 @@ public final class ECGQACoTDataset {
     // Verbatim from OpenTSLM `ECGQACoTQADataset.py:_get_post_prompt`.
     /// Verified byte-identical to OpenTSLM's `ECGQACoTQADataset._get_post_prompt`.
     /// Shared with the HealthKit path so the two cannot drift apart again.
-    static func postPrompt(possibleAnswers: [String]) -> String {
+    public static func postPrompt(possibleAnswers: [String]) -> String {
         if possibleAnswers.isEmpty {
             return """
             Based on your analysis of the ECG data, provide your answer.
