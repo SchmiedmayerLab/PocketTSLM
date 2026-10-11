@@ -17,8 +17,8 @@
     ],
     "targetForVariableExpansion" : {
       "containerPath" : "container:PocketTSLM.xcodeproj",
-      "identifier" : "44E72E382D2C615400520745",
-      "name" : "PocketTSLMStudy"
+      "identifier" : "440071A72CFD092300DC7C5A",
+      "name" : "PocketTSLM"
     }
   },
   "testTargets" : [

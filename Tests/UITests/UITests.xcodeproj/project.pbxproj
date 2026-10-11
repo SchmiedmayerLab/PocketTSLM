@@ -11,15 +11,6 @@
 		440072032CFD20ED00DC7C5A /* SpeziLLMLocalDownload in Frameworks */ = {isa = PBXBuildFile; productRef = 440072022CFD20ED00DC7C5A /* SpeziLLMLocalDownload */; };
 		4459F7C12D2DE2C500F0190D /* SpeziChat in Frameworks */ = {isa = PBXBuildFile; productRef = 4459F7C02D2DE2C500F0190D /* SpeziChat */; };
 		4459F7C52D2DE31600F0190D /* SpeziOnboarding in Frameworks */ = {isa = PBXBuildFile; productRef = 4459F7C42D2DE31600F0190D /* SpeziOnboarding */; };
-		4459F7C72D2DE31F00F0190D /* SpeziChat in Frameworks */ = {isa = PBXBuildFile; productRef = 4459F7C62D2DE31F00F0190D /* SpeziChat */; };
-		4459F7C92D2DE31F00F0190D /* SpeziOnboarding in Frameworks */ = {isa = PBXBuildFile; productRef = 4459F7C82D2DE31F00F0190D /* SpeziOnboarding */; };
-		4459F7CB2D2DE31F00F0190D /* SpeziQuestionnaire in Frameworks */ = {isa = PBXBuildFile; productRef = 4459F7CA2D2DE31F00F0190D /* SpeziQuestionnaire */; };
-		44E72E6E2D2C62B000520745 /* SpeziLLM in Frameworks */ = {isa = PBXBuildFile; productRef = 44E72E6D2D2C62B000520745 /* SpeziLLM */; };
-		44E72E702D2C62B000520745 /* SpeziLLMLocal in Frameworks */ = {isa = PBXBuildFile; productRef = 44E72E6F2D2C62B000520745 /* SpeziLLMLocal */; };
-		44E72E722D2C62B000520745 /* SpeziLLMLocalDownload in Frameworks */ = {isa = PBXBuildFile; productRef = 44E72E712D2C62B000520745 /* SpeziLLMLocalDownload */; };
-		44E72E742D2C62B000520745 /* SpeziLLMOpenAI in Frameworks */ = {isa = PBXBuildFile; productRef = 44E72E732D2C62B000520745 /* SpeziLLMOpenAI */; };
-		44ED1C1C2D6E4E9300C032AD /* SpeziAccessGuard in Frameworks */ = {isa = PBXBuildFile; productRef = 44ED1C1B2D6E4E9300C032AD /* SpeziAccessGuard */; };
-		BB95E3212E36E9050054FA4C /* SpeziHealthKit in Frameworks */ = {isa = PBXBuildFile; productRef = BB95E3202E36E9050054FA4C /* SpeziHealthKit */; };
 		BB95E3232E36E9FD0054FA4C /* SpeziHealthKit in Frameworks */ = {isa = PBXBuildFile; productRef = BB95E3222E36E9FD0054FA4C /* SpeziHealthKit */; };
 		BB95E3602E396CB70054FA4C /* SpeziHealthKitUI in Frameworks */ = {isa = PBXBuildFile; productRef = BB95E35F2E396CB70054FA4C /* SpeziHealthKitUI */; };
 /* End PBXBuildFile section */
@@ -43,7 +34,6 @@
 
 /* Begin PBXFileReference section */
 		440071A82CFD092300DC7C5A /* PocketTSLM.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = PocketTSLM.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		44E72E392D2C615400520745 /* PocketTSLMStudy.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = PocketTSLMStudy.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		657F8C0E2DCAB0DE00BE4C4E /* PocketTSLMTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = PocketTSLMTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		657F8C1B2DCAB0F500BE4C4E /* PocketTSLMUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = PocketTSLMUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		657F8C262DCAB13500BE4C4E /* PocketTSLM.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = PocketTSLM.xctestplan; sourceTree = "<group>"; };
@@ -68,22 +58,6 @@
 				BB95E3602E396CB70054FA4C /* SpeziHealthKitUI in Frameworks */,
 				4459F7C12D2DE2C500F0190D /* SpeziChat in Frameworks */,
 				BB95E3232E36E9FD0054FA4C /* SpeziHealthKit in Frameworks */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		44E72E362D2C615400520745 /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				44ED1C1C2D6E4E9300C032AD /* SpeziAccessGuard in Frameworks */,
-				BB95E3212E36E9050054FA4C /* SpeziHealthKit in Frameworks */,
-				4459F7C72D2DE31F00F0190D /* SpeziChat in Frameworks */,
-				44E72E742D2C62B000520745 /* SpeziLLMOpenAI in Frameworks */,
-				4459F7CB2D2DE31F00F0190D /* SpeziQuestionnaire in Frameworks */,
-				44E72E702D2C62B000520745 /* SpeziLLMLocal in Frameworks */,
-				4459F7C92D2DE31F00F0190D /* SpeziOnboarding in Frameworks */,
-				44E72E6E2D2C62B000520745 /* SpeziLLM in Frameworks */,
-				44E72E722D2C62B000520745 /* SpeziLLMLocalDownload in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -118,7 +92,6 @@
 			isa = PBXGroup;
 			children = (
 				440071A82CFD092300DC7C5A /* PocketTSLM.app */,
-				44E72E392D2C615400520745 /* PocketTSLMStudy.app */,
 				657F8C0E2DCAB0DE00BE4C4E /* PocketTSLMTests.xctest */,
 				657F8C1B2DCAB0F500BE4C4E /* PocketTSLMUITests.xctest */,
 			);
@@ -161,34 +134,6 @@
 			);
 			productName = PocketTSLM;
 			productReference = 440071A82CFD092300DC7C5A /* PocketTSLM.app */;
-			productType = "com.apple.product-type.application";
-		};
-		44E72E382D2C615400520745 /* PocketTSLMStudy */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = 44E72E5A2D2C615500520745 /* Build configuration list for PBXNativeTarget "PocketTSLMStudy" */;
-			buildPhases = (
-				44E72E352D2C615400520745 /* Sources */,
-				44E72E362D2C615400520745 /* Frameworks */,
-				44E72E372D2C615400520745 /* Resources */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-			);
-			name = PocketTSLMStudy;
-			packageProductDependencies = (
-				44E72E6D2D2C62B000520745 /* SpeziLLM */,
-				44E72E6F2D2C62B000520745 /* SpeziLLMLocal */,
-				44E72E712D2C62B000520745 /* SpeziLLMLocalDownload */,
-				44E72E732D2C62B000520745 /* SpeziLLMOpenAI */,
-				4459F7C62D2DE31F00F0190D /* SpeziChat */,
-				4459F7C82D2DE31F00F0190D /* SpeziOnboarding */,
-				4459F7CA2D2DE31F00F0190D /* SpeziQuestionnaire */,
-				44ED1C1B2D6E4E9300C032AD /* SpeziAccessGuard */,
-				BB95E3202E36E9050054FA4C /* SpeziHealthKit */,
-			);
-			productName = PocketTSLMStudy;
-			productReference = 44E72E392D2C615400520745 /* PocketTSLMStudy.app */;
 			productType = "com.apple.product-type.application";
 		};
 		657F8C0D2DCAB0DE00BE4C4E /* PocketTSLMTests */ = {
@@ -244,9 +189,6 @@
 					440071A72CFD092300DC7C5A = {
 						CreatedOnToolsVersion = 16.1;
 					};
-					44E72E382D2C615400520745 = {
-						CreatedOnToolsVersion = 16.2;
-					};
 					657F8C0D2DCAB0DE00BE4C4E = {
 						CreatedOnToolsVersion = 16.3;
 						TestTargetID = 440071A72CFD092300DC7C5A;
@@ -270,8 +212,6 @@
 				440071FE2CFD206F00DC7C5A /* XCRemoteSwiftPackageReference "SpeziLLM" */,
 				4459F7BF2D2DE2C500F0190D /* XCRemoteSwiftPackageReference "SpeziChat" */,
 				4459F7C22D2DE2E300F0190D /* XCRemoteSwiftPackageReference "SpeziOnboarding" */,
-				4459F7C32D2DE30100F0190D /* XCRemoteSwiftPackageReference "SpeziQuestionnaire" */,
-				4446AE1D2D6D576B00514B1E /* XCRemoteSwiftPackageReference "SpeziAccessGuard" */,
 				BBF6943D2E134DB3000C570C /* XCRemoteSwiftPackageReference "SpeziHealthKit" */,
 			);
 			preferredProjectObjectVersion = 77;
@@ -280,7 +220,6 @@
 			projectRoot = "";
 			targets = (
 				440071A72CFD092300DC7C5A /* PocketTSLM */,
-				44E72E382D2C615400520745 /* PocketTSLMStudy */,
 				657F8C0D2DCAB0DE00BE4C4E /* PocketTSLMTests */,
 				657F8C1A2DCAB0F500BE4C4E /* PocketTSLMUITests */,
 			);
@@ -289,13 +228,6 @@
 
 /* Begin PBXResourcesBuildPhase section */
 		440071A62CFD092300DC7C5A /* Resources */ = {
-			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		44E72E372D2C615400520745 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -320,13 +252,6 @@
 
 /* Begin PBXSourcesBuildPhase section */
 		440071A42CFD092300DC7C5A /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		44E72E352D2C615400520745 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -568,100 +493,6 @@
 			};
 			name = Release;
 		};
-		44E72E5B2D2C615500520745 /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = "PocketTSLMStudy/Supporting Files/PocketTSLMStudy.entitlements";
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_ASSET_PATHS = "\"PocketTSLMStudy/Supporting Files/Preview Content\"";
-				DEVELOPMENT_TEAM = "";
-				ENABLE_PREVIEWS = YES;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = "PocketTSLMStudy/Supporting Files/Info.plist";
-				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
-				INFOPLIST_KEY_NSCameraUsageDescription = "This message should never appear. Please adjust this when you start using camera information. We have to put this in here as ResearchKit has the possibility to use it and not putting it here returns an error on AppStore Connect.";
-				INFOPLIST_KEY_NSHealthShareUsageDescription = "Your health data is shared securely and only for approved purposes, such as improving care or supporting research. We prioritize your privacy with encrypted transfers, minimal data sharing, and full transparency. You control what is shared and with whom.";
-				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "Your health data is shared securely and only for approved purposes, such as improving care or supporting research. We prioritize your privacy with encrypted transfers, minimal data sharing, and full transparency. You control what is shared and with whom.";
-				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "This message should never appear. Please adjust this when you start using camera information. We have to put this in here as ResearchKit has the possibility to use it and not putting it here returns an error on AppStore Connect.";
-				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "This message should never appear. Please adjust this when you start using camera information. We have to put this in here as ResearchKit has the possibility to use it and not putting it here returns an error on AppStore Connect.";
-				INFOPLIST_KEY_NSMicrophoneUsageDescription = "This message should never appear. Please adjust this when you start using camera information. We have to put this in here as ResearchKit has the possibility to use it and not putting it here returns an error on AppStore Connect.";
-				INFOPLIST_KEY_NSMotionUsageDescription = "This message should never appear. Please adjust this when you start using camera information. We have to put this in here as ResearchKit has the possibility to use it and not putting it here returns an error on AppStore Connect.";
-				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "This message should never appear. Please adjust this when you start using camera information. We have to put this in here as ResearchKit has the possibility to use it and not putting it here returns an error on AppStore Connect.";
-				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
-				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
-				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UIRequiresFullScreen = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
-				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-				);
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = edu.stanford.schmiedmayerlab.pockettslm.demo.co;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
-				SUPPORTS_MACCATALYST = NO;
-				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = YES;
-				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
-				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
-			};
-			name = Debug;
-		};
-		44E72E5C2D2C615500520745 /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = "PocketTSLMStudy/Supporting Files/PocketTSLMStudy.entitlements";
-				CODE_SIGN_IDENTITY = "Apple Development";
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_ASSET_PATHS = "\"PocketTSLMStudy/Supporting Files/Preview Content\"";
-				DEVELOPMENT_TEAM = "";
-				ENABLE_PREVIEWS = YES;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = "PocketTSLMStudy/Supporting Files/Info.plist";
-				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
-				INFOPLIST_KEY_NSCameraUsageDescription = "This message should never appear. Please adjust this when you start using camera information. We have to put this in here as ResearchKit has the possibility to use it and not putting it here returns an error on AppStore Connect.";
-				INFOPLIST_KEY_NSHealthShareUsageDescription = "Your health data is shared securely and only for approved purposes, such as improving care or supporting research. We prioritize your privacy with encrypted transfers, minimal data sharing, and full transparency. You control what is shared and with whom.";
-				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "Your health data is shared securely and only for approved purposes, such as improving care or supporting research. We prioritize your privacy with encrypted transfers, minimal data sharing, and full transparency. You control what is shared and with whom.";
-				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "This message should never appear. Please adjust this when you start using camera information. We have to put this in here as ResearchKit has the possibility to use it and not putting it here returns an error on AppStore Connect.";
-				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "This message should never appear. Please adjust this when you start using camera information. We have to put this in here as ResearchKit has the possibility to use it and not putting it here returns an error on AppStore Connect.";
-				INFOPLIST_KEY_NSMicrophoneUsageDescription = "This message should never appear. Please adjust this when you start using camera information. We have to put this in here as ResearchKit has the possibility to use it and not putting it here returns an error on AppStore Connect.";
-				INFOPLIST_KEY_NSMotionUsageDescription = "This message should never appear. Please adjust this when you start using camera information. We have to put this in here as ResearchKit has the possibility to use it and not putting it here returns an error on AppStore Connect.";
-				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "This message should never appear. Please adjust this when you start using camera information. We have to put this in here as ResearchKit has the possibility to use it and not putting it here returns an error on AppStore Connect.";
-				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
-				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
-				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UIRequiresFullScreen = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
-				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-				);
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = edu.stanford.schmiedmayerlab.pockettslm.demo.co;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				PROVISIONING_PROFILE_SPECIFIER = "";
-				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
-				SUPPORTS_MACCATALYST = NO;
-				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = YES;
-				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
-				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
-			};
-			name = Release;
-		};
 		657F8C152DCAB0DE00BE4C4E /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -757,15 +588,6 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		44E72E5A2D2C615500520745 /* Build configuration list for PBXNativeTarget "PocketTSLMStudy" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				44E72E5B2D2C615500520745 /* Debug */,
-				44E72E5C2D2C615500520745 /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
 		657F8C142DCAB0DE00BE4C4E /* Build configuration list for PBXNativeTarget "PocketTSLMTests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
@@ -795,14 +617,6 @@
 				kind = branch;
 			};
 		};
-		4446AE1D2D6D576B00514B1E /* XCRemoteSwiftPackageReference "SpeziAccessGuard" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/StanfordSpezi/SpeziAccessGuard";
-			requirement = {
-				branch = "feat/LN_access-guard-button";
-				kind = branch;
-			};
-		};
 		4459F7BF2D2DE2C500F0190D /* XCRemoteSwiftPackageReference "SpeziChat" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/StanfordSpezi/SpeziChat";
@@ -817,14 +631,6 @@
 			requirement = {
 				kind = upToNextMajorVersion;
 				minimumVersion = 1.2.2;
-			};
-		};
-		4459F7C32D2DE30100F0190D /* XCRemoteSwiftPackageReference "SpeziQuestionnaire" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/StanfordSpezi/SpeziQuestionnaire";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 1.2.3;
 			};
 		};
 		BBF6943D2E134DB3000C570C /* XCRemoteSwiftPackageReference "SpeziHealthKit" */ = {
@@ -857,51 +663,6 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 4459F7C22D2DE2E300F0190D /* XCRemoteSwiftPackageReference "SpeziOnboarding" */;
 			productName = SpeziOnboarding;
-		};
-		4459F7C62D2DE31F00F0190D /* SpeziChat */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 4459F7BF2D2DE2C500F0190D /* XCRemoteSwiftPackageReference "SpeziChat" */;
-			productName = SpeziChat;
-		};
-		4459F7C82D2DE31F00F0190D /* SpeziOnboarding */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 4459F7C22D2DE2E300F0190D /* XCRemoteSwiftPackageReference "SpeziOnboarding" */;
-			productName = SpeziOnboarding;
-		};
-		4459F7CA2D2DE31F00F0190D /* SpeziQuestionnaire */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 4459F7C32D2DE30100F0190D /* XCRemoteSwiftPackageReference "SpeziQuestionnaire" */;
-			productName = SpeziQuestionnaire;
-		};
-		44E72E6D2D2C62B000520745 /* SpeziLLM */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 440071FE2CFD206F00DC7C5A /* XCRemoteSwiftPackageReference "SpeziLLM" */;
-			productName = SpeziLLM;
-		};
-		44E72E6F2D2C62B000520745 /* SpeziLLMLocal */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 440071FE2CFD206F00DC7C5A /* XCRemoteSwiftPackageReference "SpeziLLM" */;
-			productName = SpeziLLMLocal;
-		};
-		44E72E712D2C62B000520745 /* SpeziLLMLocalDownload */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 440071FE2CFD206F00DC7C5A /* XCRemoteSwiftPackageReference "SpeziLLM" */;
-			productName = SpeziLLMLocalDownload;
-		};
-		44E72E732D2C62B000520745 /* SpeziLLMOpenAI */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 440071FE2CFD206F00DC7C5A /* XCRemoteSwiftPackageReference "SpeziLLM" */;
-			productName = SpeziLLMOpenAI;
-		};
-		44ED1C1B2D6E4E9300C032AD /* SpeziAccessGuard */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 4446AE1D2D6D576B00514B1E /* XCRemoteSwiftPackageReference "SpeziAccessGuard" */;
-			productName = SpeziAccessGuard;
-		};
-		BB95E3202E36E9050054FA4C /* SpeziHealthKit */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = BBF6943D2E134DB3000C570C /* XCRemoteSwiftPackageReference "SpeziHealthKit" */;
-			productName = SpeziHealthKit;
 		};
 		BB95E3222E36E9FD0054FA4C /* SpeziHealthKit */ = {
 			isa = XCSwiftPackageProductDependency;

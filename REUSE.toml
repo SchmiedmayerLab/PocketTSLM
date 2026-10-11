@@ -5,8 +5,6 @@ path = [
     "PocketTSLM.xcodeproj/**",
     "PocketTSLM/Supporting Files/**",
     "PocketTSLM.xctestplan",
-    "PocketTSLMTestPlan.xctestplan",
-    "PocketTSLMStudy/Supporting Files/**",
     "scripts/assets.sha256",
     "tools/tasks/**",
 ]

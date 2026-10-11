@@ -1,24 +1,6 @@
 {
-  "originHash" : "b2b673e6d9c8988f99f6f807f84bf41ca8a3ffc45849c6465bedce39bff4049d",
+  "originHash" : "1567724d1b4f6961d1d12c849f4bf809d5deddd61cfbb099704bb30d954ce3e4",
   "pins" : [
-    {
-      "identity" : "antlr4",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/antlr/antlr4.git",
-      "state" : {
-        "revision" : "cc82115a4e7f53d71d9d905caa2c2dfa4da58899",
-        "version" : "4.13.2"
-      }
-    },
-    {
-      "identity" : "fhirmodels",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/apple/FHIRModels",
-      "state" : {
-        "revision" : "861afd5816a98d38f86220eab2f812d76cad84a0",
-        "version" : "0.5.0"
-      }
-    },
     {
       "identity" : "gzipswift",
       "kind" : "remoteSourceControl",
@@ -64,39 +46,12 @@
       }
     },
     {
-      "identity" : "researchkit",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/StanfordBDHG/ResearchKit",
-      "state" : {
-        "revision" : "08ab0290140e5a5e0e81d46cade1f09c7282facf",
-        "version" : "3.0.3"
-      }
-    },
-    {
-      "identity" : "researchkitonfhir",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/StanfordBDHG/ResearchKitOnFHIR",
-      "state" : {
-        "revision" : "2c70b9dc7a1be9c804222e93d1737be9fca9af84",
-        "version" : "2.0.3"
-      }
-    },
-    {
       "identity" : "spezi",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/StanfordSpezi/Spezi",
       "state" : {
         "revision" : "a15b01c99cf7f8f9357af1be092d30bfcfd21dad",
         "version" : "1.9.0"
-      }
-    },
-    {
-      "identity" : "speziaccessguard",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/StanfordSpezi/SpeziAccessGuard",
-      "state" : {
-        "branch" : "feat/LN_access-guard-button",
-        "revision" : "c0d4b22454babd138443244f233732f203a6084d"
       }
     },
     {
@@ -142,15 +97,6 @@
       "state" : {
         "revision" : "a3d7bc15e6803b2205eb8dca010a48b1a40215be",
         "version" : "1.2.2"
-      }
-    },
-    {
-      "identity" : "speziquestionnaire",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/StanfordSpezi/SpeziQuestionnaire",
-      "state" : {
-        "revision" : "d0bd55f8a0bd3eeb806a673261e9d6b9fd43f3cd",
-        "version" : "1.2.3"
       }
     },
     {
