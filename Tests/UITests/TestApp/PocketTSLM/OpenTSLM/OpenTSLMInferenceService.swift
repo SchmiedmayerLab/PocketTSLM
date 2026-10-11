@@ -9,6 +9,7 @@
 import Foundation
 import MLX
 import OSLog
+import PocketTSLM
 import Spezi
 import SpeziLLM
 import SpeziLLMLocal

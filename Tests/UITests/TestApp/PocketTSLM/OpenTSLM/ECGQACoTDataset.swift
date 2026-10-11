@@ -1,4 +1,5 @@
 import Foundation
+import PocketTSLM
 
 /// On-device ECG-QA CoT loader mirroring OpenTSLM's ``ECGQACoTQADataset`` + ``ecgqa_cot_loader``.
 ///

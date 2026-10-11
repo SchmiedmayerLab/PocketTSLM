@@ -1,4 +1,5 @@
 import Foundation
+import PocketTSLM
 
 public final class SleepEDFDataset {
 
