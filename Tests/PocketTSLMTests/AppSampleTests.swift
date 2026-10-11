@@ -109,6 +109,29 @@ final class AppSampleTests: XCTestCase {
         }
     }
 
+    func testWatchECGSamplesMatchTheApp() throws {
+        let checkpoint = try Self.checkpoint("ecg-qa")
+        // The paper app's prompt values for a recording from HealthKit.
+        let context = [
+            "clinicalContext": "Single-lead ambulatory ECG recording (Lead I equivalent, replicated across the standard 12 leads).",
+            "question": "Is the cardiac rhythm shown in this ECG consistent with atrial fibrillation?"
+        ]
+        for (index, (count, seed)) in [(15360, UInt64(20)), (2048, UInt64(21))].enumerated() {
+            let voltages = Synthetic.series(count: count, seed: seed, scale: 8e-4, offset: 1e-4).map(Double.init)
+            let input = TSLMInput(
+                series: ECG.twelveLeads(fromLeadI: voltages, samplingRate: 512),
+                context: context,
+                answerOptions: ["yes", "no"]
+            )
+            let sample = try checkpoint.makeSample(
+                input,
+                label: "sinus rhythm",
+                answer: "classification=sinus rhythm, symptoms_status=none, average_heart_rate=72.0"
+            )
+            assertMatches(sample, try Self.captured("watch-\(index)"))
+        }
+    }
+
     func testMissingTemplateValuesThrow() throws {
         let input = TSLMInput(series: [TimeSeries(samples: [1, 2, 3])], context: ["question": "Is this normal?"])
         XCTAssertThrowsError(try Self.checkpoint("ecg-qa").makeSample(input)) { error in
