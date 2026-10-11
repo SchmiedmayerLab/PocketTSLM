@@ -10,9 +10,6 @@ struct RunnerConfig {
     var split = SleepEDFDataset.Split.test
     var sampleIdx = 0
     var hiddenSize = 2048
-    var healthKitECGJSONPath: String?
-    var useHardcodedECG = false
-    var hardcodedECGSampleLength = 1024
 
     init(arguments: [String]) {
         var index = 1
@@ -53,18 +50,6 @@ struct RunnerConfig {
                 }
             case "--help", "-h":
                 printHelpAndExit()
-            case "--healthkit-ecg-json":
-                if let value {
-                    healthKitECGJSONPath = value
-                    index += 1
-                }
-            case "--hardcoded-ecg":
-                useHardcodedECG = true
-            case "--hardcoded-ecg-length":
-                if let value, let parsed = Int(value) {
-                    hardcodedECGSampleLength = parsed
-                    index += 1
-                }
             default:
                 break
             }
@@ -84,9 +69,6 @@ struct RunnerConfig {
           --split <name>         train | validation | test
           --sample-idx <int>     Sample index inside selected split
           --hidden-size <int>    Projector output dimension
-                    --healthkit-ecg-json <path>  HealthKit ECG JSON file for direct inference
-                    --hardcoded-ecg        Use deterministic hardcoded ECG sample
-                    --hardcoded-ecg-length <int> Hardcoded ECG sample length
           --help                 Show this help
         """)
         Foundation.exit(0)
@@ -102,31 +84,19 @@ try using(device: .cpu) {
     )
 
     let sample: OpenTSLMSPSample
-    if config.useHardcodedECG || config.healthKitECGJSONPath != nil {
-        let ecgSample: HealthKitECGSample
-        if let jsonPath = config.healthKitECGJSONPath {
-            ecgSample = try ECGSampleFactory.loadFromJSON(at: URL(fileURLWithPath: jsonPath))
-            print("Loaded HealthKit ECG JSON: \(jsonPath)")
-        } else {
-            ecgSample = ECGSampleFactory.hardcoded(sampleLength: config.hardcodedECGSampleLength)
-            print("Using hardcoded ECG sample (length=\(config.hardcodedECGSampleLength))")
-        }
-        sample = ECGSampleFactory.toOpenTSLMSample(ecgSample)
-    } else {
-        let dataset = try SleepEDFDataset(
-            csvURL: URL(fileURLWithPath: config.csvPath),
-            split: config.split
-        )
+    let dataset = try SleepEDFDataset(
+        csvURL: URL(fileURLWithPath: config.csvPath),
+        split: config.split
+    )
 
-        if dataset.count == 0 {
-            throw NSError(domain: "OpenTSLMRunner", code: 10, userInfo: [NSLocalizedDescriptionKey: "Selected split has no samples"])
-        }
-
-        let safeIndex = min(max(config.sampleIdx, 0), dataset.count - 1)
-        sample = dataset.sample(at: safeIndex)
-
-        print("Loaded sample index: \(safeIndex) (split=\(config.split.rawValue))")
+    if dataset.count == 0 {
+        throw NSError(domain: "OpenTSLMRunner", code: 10, userInfo: [NSLocalizedDescriptionKey: "Selected split has no samples"])
     }
+
+    let safeIndex = min(max(config.sampleIdx, 0), dataset.count - 1)
+    sample = dataset.sample(at: safeIndex)
+
+    print("Loaded sample index: \(safeIndex) (split=\(config.split.rawValue))")
 
     let projected = pipeline.projectSample(sample)
 
