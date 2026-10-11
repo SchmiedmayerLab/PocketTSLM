@@ -37,6 +37,9 @@ data/
 PocketTSLM/Supporting Files/LocalLLM/
 PocketTSLM/Supporting Files/OpenTSLM/
 
+# Converted checkpoints prepared for upload to Hugging Face
+upload/
+
 # Python bytecode
 __pycache__/
 
