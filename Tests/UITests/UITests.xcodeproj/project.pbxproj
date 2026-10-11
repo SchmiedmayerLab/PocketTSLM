@@ -21,28 +21,28 @@
 			containerPortal = 440071A02CFD092300DC7C5A /* Project object */;
 			proxyType = 1;
 			remoteGlobalIDString = 440071A72CFD092300DC7C5A;
-			remoteInfo = PocketTSLM;
+			remoteInfo = TestApp;
 		};
 		657F8C212DCAB0F500BE4C4E /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 440071A02CFD092300DC7C5A /* Project object */;
 			proxyType = 1;
 			remoteGlobalIDString = 440071A72CFD092300DC7C5A;
-			remoteInfo = PocketTSLM;
+			remoteInfo = TestApp;
 		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		440071A82CFD092300DC7C5A /* PocketTSLM.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = PocketTSLM.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		657F8C0E2DCAB0DE00BE4C4E /* PocketTSLMTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = PocketTSLMTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		657F8C1B2DCAB0F500BE4C4E /* PocketTSLMUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = PocketTSLMUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		657F8C262DCAB13500BE4C4E /* PocketTSLM.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = PocketTSLM.xctestplan; sourceTree = "<group>"; };
+		440071A82CFD092300DC7C5A /* TestApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TestApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		657F8C0E2DCAB0DE00BE4C4E /* TestAppTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TestAppTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		657F8C1B2DCAB0F500BE4C4E /* TestAppUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TestAppUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		657F8C262DCAB13500BE4C4E /* TestApp.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = TestApp.xctestplan; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		440071C92CFD094500DC7C5A /* PocketTSLM */ = {
+		440071C92CFD094500DC7C5A /* TestApp */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			path = PocketTSLM;
+			path = TestApp;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -81,8 +81,8 @@
 		4400719F2CFD092300DC7C5A = {
 			isa = PBXGroup;
 			children = (
-				657F8C262DCAB13500BE4C4E /* PocketTSLM.xctestplan */,
-				440071C92CFD094500DC7C5A /* PocketTSLM */,
+				657F8C262DCAB13500BE4C4E /* TestApp.xctestplan */,
+				440071C92CFD094500DC7C5A /* TestApp */,
 				440071FF2CFD20ED00DC7C5A /* Frameworks */,
 				440071A92CFD092300DC7C5A /* Products */,
 			);
@@ -91,9 +91,9 @@
 		440071A92CFD092300DC7C5A /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				440071A82CFD092300DC7C5A /* PocketTSLM.app */,
-				657F8C0E2DCAB0DE00BE4C4E /* PocketTSLMTests.xctest */,
-				657F8C1B2DCAB0F500BE4C4E /* PocketTSLMUITests.xctest */,
+				440071A82CFD092300DC7C5A /* TestApp.app */,
+				657F8C0E2DCAB0DE00BE4C4E /* TestAppTests.xctest */,
+				657F8C1B2DCAB0F500BE4C4E /* TestAppUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -108,9 +108,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		440071A72CFD092300DC7C5A /* PocketTSLM */ = {
+		440071A72CFD092300DC7C5A /* TestApp */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 440071B62CFD092400DC7C5A /* Build configuration list for PBXNativeTarget "PocketTSLM" */;
+			buildConfigurationList = 440071B62CFD092400DC7C5A /* Build configuration list for PBXNativeTarget "TestApp" */;
 			buildPhases = (
 				440071A42CFD092300DC7C5A /* Sources */,
 				440071A52CFD092300DC7C5A /* Frameworks */,
@@ -121,9 +121,9 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				440071C92CFD094500DC7C5A /* PocketTSLM */,
+				440071C92CFD094500DC7C5A /* TestApp */,
 			);
-			name = PocketTSLM;
+			name = TestApp;
 			packageProductDependencies = (
 				440072002CFD20ED00DC7C5A /* SpeziLLMLocal */,
 				440072022CFD20ED00DC7C5A /* SpeziLLMLocalDownload */,
@@ -132,13 +132,13 @@
 				BB95E3222E36E9FD0054FA4C /* SpeziHealthKit */,
 				BB95E35F2E396CB70054FA4C /* SpeziHealthKitUI */,
 			);
-			productName = PocketTSLM;
-			productReference = 440071A82CFD092300DC7C5A /* PocketTSLM.app */;
+			productName = TestApp;
+			productReference = 440071A82CFD092300DC7C5A /* TestApp.app */;
 			productType = "com.apple.product-type.application";
 		};
-		657F8C0D2DCAB0DE00BE4C4E /* PocketTSLMTests */ = {
+		657F8C0D2DCAB0DE00BE4C4E /* TestAppTests */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 657F8C142DCAB0DE00BE4C4E /* Build configuration list for PBXNativeTarget "PocketTSLMTests" */;
+			buildConfigurationList = 657F8C142DCAB0DE00BE4C4E /* Build configuration list for PBXNativeTarget "TestAppTests" */;
 			buildPhases = (
 				657F8C0A2DCAB0DE00BE4C4E /* Sources */,
 				657F8C0B2DCAB0DE00BE4C4E /* Frameworks */,
@@ -149,16 +149,16 @@
 			dependencies = (
 				657F8C132DCAB0DE00BE4C4E /* PBXTargetDependency */,
 			);
-			name = PocketTSLMTests;
+			name = TestAppTests;
 			packageProductDependencies = (
 			);
-			productName = PocketTSLMTests;
-			productReference = 657F8C0E2DCAB0DE00BE4C4E /* PocketTSLMTests.xctest */;
+			productName = TestAppTests;
+			productReference = 657F8C0E2DCAB0DE00BE4C4E /* TestAppTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
-		657F8C1A2DCAB0F500BE4C4E /* PocketTSLMUITests */ = {
+		657F8C1A2DCAB0F500BE4C4E /* TestAppUITests */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 657F8C232DCAB0F500BE4C4E /* Build configuration list for PBXNativeTarget "PocketTSLMUITests" */;
+			buildConfigurationList = 657F8C232DCAB0F500BE4C4E /* Build configuration list for PBXNativeTarget "TestAppUITests" */;
 			buildPhases = (
 				657F8C172DCAB0F500BE4C4E /* Sources */,
 				657F8C182DCAB0F500BE4C4E /* Frameworks */,
@@ -169,11 +169,11 @@
 			dependencies = (
 				657F8C222DCAB0F500BE4C4E /* PBXTargetDependency */,
 			);
-			name = PocketTSLMUITests;
+			name = TestAppUITests;
 			packageProductDependencies = (
 			);
-			productName = PocketTSLMUITests;
-			productReference = 657F8C1B2DCAB0F500BE4C4E /* PocketTSLMUITests.xctest */;
+			productName = TestAppUITests;
+			productReference = 657F8C1B2DCAB0F500BE4C4E /* TestAppUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
 		};
 /* End PBXNativeTarget section */
@@ -199,7 +199,7 @@
 					};
 				};
 			};
-			buildConfigurationList = 440071A32CFD092300DC7C5A /* Build configuration list for PBXProject "PocketTSLM" */;
+			buildConfigurationList = 440071A32CFD092300DC7C5A /* Build configuration list for PBXProject "UITests" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -219,9 +219,9 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				440071A72CFD092300DC7C5A /* PocketTSLM */,
-				657F8C0D2DCAB0DE00BE4C4E /* PocketTSLMTests */,
-				657F8C1A2DCAB0F500BE4C4E /* PocketTSLMUITests */,
+				440071A72CFD092300DC7C5A /* TestApp */,
+				657F8C0D2DCAB0DE00BE4C4E /* TestAppTests */,
+				657F8C1A2DCAB0F500BE4C4E /* TestAppUITests */,
 			);
 		};
 /* End PBXProject section */
@@ -277,12 +277,12 @@
 /* Begin PBXTargetDependency section */
 		657F8C132DCAB0DE00BE4C4E /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = 440071A72CFD092300DC7C5A /* PocketTSLM */;
+			target = 440071A72CFD092300DC7C5A /* TestApp */;
 			targetProxy = 657F8C122DCAB0DE00BE4C4E /* PBXContainerItemProxy */;
 		};
 		657F8C222DCAB0F500BE4C4E /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = 440071A72CFD092300DC7C5A /* PocketTSLM */;
+			target = 440071A72CFD092300DC7C5A /* TestApp */;
 			targetProxy = 657F8C212DCAB0F500BE4C4E /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
@@ -413,11 +413,12 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				INFOPLIST_KEY_CFBundleDisplayName = "PocketTSLM Demo";
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = "PocketTSLM/Supporting Files/PocketTSLM.entitlements";
+				CODE_SIGN_ENTITLEMENTS = "TestApp/Supporting Files/PocketTSLM.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_ASSET_PATHS = "\"PocketTSLM/Supporting Files/Preview Content\"";
+				DEVELOPMENT_ASSET_PATHS = "\"TestApp/Supporting Files/Preview Content\"";
 				DEVELOPMENT_TEAM = "";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -454,12 +455,13 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				INFOPLIST_KEY_CFBundleDisplayName = "PocketTSLM Demo";
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = "PocketTSLM/Supporting Files/PocketTSLM.entitlements";
+				CODE_SIGN_ENTITLEMENTS = "TestApp/Supporting Files/PocketTSLM.entitlements";
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_ASSET_PATHS = "\"PocketTSLM/Supporting Files/Preview Content\"";
+				DEVELOPMENT_ASSET_PATHS = "\"TestApp/Supporting Files/Preview Content\"";
 				DEVELOPMENT_TEAM = "";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -508,7 +510,7 @@
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/PocketTSLM.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/PocketTSLM";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/TestApp.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/TestApp";
 			};
 			name = Debug;
 		};
@@ -527,7 +529,7 @@
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/PocketTSLM.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/PocketTSLM";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/TestApp.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/TestApp";
 			};
 			name = Release;
 		};
@@ -545,7 +547,7 @@
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_TARGET_NAME = PocketTSLM;
+				TEST_TARGET_NAME = TestApp;
 			};
 			name = Debug;
 		};
@@ -563,14 +565,14 @@
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_TARGET_NAME = PocketTSLM;
+				TEST_TARGET_NAME = TestApp;
 			};
 			name = Release;
 		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		440071A32CFD092300DC7C5A /* Build configuration list for PBXProject "PocketTSLM" */ = {
+		440071A32CFD092300DC7C5A /* Build configuration list for PBXProject "UITests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				440071B42CFD092400DC7C5A /* Debug */,
@@ -579,7 +581,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		440071B62CFD092400DC7C5A /* Build configuration list for PBXNativeTarget "PocketTSLM" */ = {
+		440071B62CFD092400DC7C5A /* Build configuration list for PBXNativeTarget "TestApp" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				440071B72CFD092400DC7C5A /* Debug */,
@@ -588,7 +590,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		657F8C142DCAB0DE00BE4C4E /* Build configuration list for PBXNativeTarget "PocketTSLMTests" */ = {
+		657F8C142DCAB0DE00BE4C4E /* Build configuration list for PBXNativeTarget "TestAppTests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				657F8C152DCAB0DE00BE4C4E /* Debug */,
@@ -597,7 +599,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		657F8C232DCAB0F500BE4C4E /* Build configuration list for PBXNativeTarget "PocketTSLMUITests" */ = {
+		657F8C232DCAB0F500BE4C4E /* Build configuration list for PBXNativeTarget "TestAppUITests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				657F8C242DCAB0F500BE4C4E /* Debug */,

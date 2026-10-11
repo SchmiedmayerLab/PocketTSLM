@@ -16,9 +16,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "440071A72CFD092300DC7C5A"
-               BuildableName = "PocketTSLM.app"
-               BlueprintName = "PocketTSLM"
-               ReferencedContainer = "container:PocketTSLM.xcodeproj">
+               BuildableName = "TestApp.app"
+               BlueprintName = "TestApp"
+               ReferencedContainer = "container:UITests.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -30,7 +30,7 @@
       shouldUseLaunchSchemeArgsEnv = "YES">
       <TestPlans>
          <TestPlanReference
-            reference = "container:PocketTSLM.xctestplan"
+            reference = "container:TestApp.xctestplan"
             default = "YES">
          </TestPlanReference>
       </TestPlans>
@@ -41,9 +41,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "657F8C0D2DCAB0DE00BE4C4E"
-               BuildableName = "PocketTSLMTests.xctest"
-               BlueprintName = "PocketTSLMTests"
-               ReferencedContainer = "container:PocketTSLM.xcodeproj">
+               BuildableName = "TestAppTests.xctest"
+               BlueprintName = "TestAppTests"
+               ReferencedContainer = "container:UITests.xcodeproj">
             </BuildableReference>
          </TestableReference>
          <TestableReference
@@ -52,9 +52,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "657F8C1A2DCAB0F500BE4C4E"
-               BuildableName = "PocketTSLMUITests.xctest"
-               BlueprintName = "PocketTSLMUITests"
-               ReferencedContainer = "container:PocketTSLM.xcodeproj">
+               BuildableName = "TestAppUITests.xctest"
+               BlueprintName = "TestAppUITests"
+               ReferencedContainer = "container:UITests.xcodeproj">
             </BuildableReference>
          </TestableReference>
       </Testables>
@@ -74,9 +74,9 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "440071A72CFD092300DC7C5A"
-            BuildableName = "PocketTSLM.app"
-            BlueprintName = "PocketTSLM"
-            ReferencedContainer = "container:PocketTSLM.xcodeproj">
+            BuildableName = "TestApp.app"
+            BlueprintName = "TestApp"
+            ReferencedContainer = "container:UITests.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
       <EnvironmentVariables>
@@ -123,9 +123,9 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "440071A72CFD092300DC7C5A"
-            BuildableName = "PocketTSLM.app"
-            BlueprintName = "PocketTSLM"
-            ReferencedContainer = "container:PocketTSLM.xcodeproj">
+            BuildableName = "TestApp.app"
+            BlueprintName = "TestApp"
+            ReferencedContainer = "container:UITests.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </ProfileAction>

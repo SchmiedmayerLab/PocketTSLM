@@ -16,24 +16,24 @@
       }
     ],
     "targetForVariableExpansion" : {
-      "containerPath" : "container:PocketTSLM.xcodeproj",
+      "containerPath" : "container:UITests.xcodeproj",
       "identifier" : "440071A72CFD092300DC7C5A",
-      "name" : "PocketTSLM"
+      "name" : "TestApp"
     }
   },
   "testTargets" : [
     {
       "target" : {
-        "containerPath" : "container:PocketTSLM.xcodeproj",
+        "containerPath" : "container:UITests.xcodeproj",
         "identifier" : "657F8C0D2DCAB0DE00BE4C4E",
-        "name" : "PocketTSLMTests"
+        "name" : "TestAppTests"
       }
     },
     {
       "target" : {
-        "containerPath" : "container:PocketTSLM.xcodeproj",
+        "containerPath" : "container:UITests.xcodeproj",
         "identifier" : "657F8C1A2DCAB0F500BE4C4E",
-        "name" : "PocketTSLMUITests"
+        "name" : "TestAppUITests"
       }
     }
   ],
