@@ -36,6 +36,10 @@ report.html
 # Model files and evaluation data, restored by scripts/fetch_assets.sh
 Tests/UITests/TestApp/Supporting Files/LocalLLM/
 Tests/UITests/TestApp/Supporting Files/OpenTSLM/
+Tests/UITests/Checkpoints/*
+!Tests/UITests/Checkpoints/README.md
+Tests/UITests/EvalData/*
+!Tests/UITests/EvalData/README.md
 
 # Converted checkpoints prepared for upload to Hugging Face
 upload/

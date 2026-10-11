@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		E890B39C3FD4722BC63E9A2A /* Checkpoints in Resources */ = {isa = PBXBuildFile; fileRef = ADCD8811DD06FB3E51A084FD /* Checkpoints */; };
+		D21E0A9F15D7B9CD14B75BDD /* EvalData in Resources */ = {isa = PBXBuildFile; fileRef = 48FA15F983059402B27F5182 /* EvalData */; };
 		B3B746EE329C2EF90CAB7C8B /* PocketTSLM in Frameworks */ = {isa = PBXBuildFile; productRef = DF65CA532F33F98BD72E186F /* PocketTSLM */; };
 		440072012CFD20ED00DC7C5A /* SpeziLLMLocal in Frameworks */ = {isa = PBXBuildFile; productRef = 440072002CFD20ED00DC7C5A /* SpeziLLMLocal */; };
 		440072032CFD20ED00DC7C5A /* SpeziLLMLocalDownload in Frameworks */ = {isa = PBXBuildFile; productRef = 440072022CFD20ED00DC7C5A /* SpeziLLMLocalDownload */; };
@@ -34,6 +36,8 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		ADCD8811DD06FB3E51A084FD /* Checkpoints */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Checkpoints; sourceTree = "<group>"; };
+		48FA15F983059402B27F5182 /* EvalData */ = {isa = PBXFileReference; lastKnownFileType = folder; path = EvalData; sourceTree = "<group>"; };
 		440071A82CFD092300DC7C5A /* TestApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TestApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		657F8C0E2DCAB0DE00BE4C4E /* TestAppTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TestAppTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		657F8C1B2DCAB0F500BE4C4E /* TestAppUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TestAppUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -85,6 +89,8 @@
 			children = (
 				657F8C262DCAB13500BE4C4E /* TestApp.xctestplan */,
 				440071C92CFD094500DC7C5A /* TestApp */,
+				ADCD8811DD06FB3E51A084FD /* Checkpoints */,
+				48FA15F983059402B27F5182 /* EvalData */,
 				440071FF2CFD20ED00DC7C5A /* Frameworks */,
 				440071A92CFD092300DC7C5A /* Products */,
 			);
@@ -235,6 +241,8 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				E890B39C3FD4722BC63E9A2A /* Checkpoints in Resources */,
+				D21E0A9F15D7B9CD14B75BDD /* EvalData in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
