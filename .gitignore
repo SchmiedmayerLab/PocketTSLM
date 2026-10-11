@@ -30,8 +30,8 @@ report.html
 *.xcresult
 
 # Local ML artifacts
-checkpoints/
-data/
+/checkpoints/
+/data/
 
 # Model files and evaluation data, restored by scripts/fetch_assets.sh
 Tests/UITests/TestApp/Supporting Files/LocalLLM/
