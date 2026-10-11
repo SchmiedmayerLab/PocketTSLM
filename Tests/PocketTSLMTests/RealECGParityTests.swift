@@ -1,6 +1,6 @@
 import XCTest
 import MLX
-@testable import OpenTSLMKit
+@testable import PocketTSLM
 
 /// Per-component Python↔Swift parity on the REAL on-device ECG weights and the REAL
 /// ECG-QA CoT sample (test idx 0) — the pipeline that diverged between the iOS Swift

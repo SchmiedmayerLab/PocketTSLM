@@ -1,7 +1,7 @@
 import XCTest
 import MLX
 import MLXFast
-@testable import OpenTSLMKit
+@testable import PocketTSLM
 
 /// Checks whether `MLXFast.RoPE` actually applies a custom `freqs` array (the llama3-scaled
 /// frequencies) the way mlx-python's `mx.fast.rope` does. On iOS the `ropeType=llama3` fix

@@ -1,6 +1,6 @@
 import Foundation
 import MLX
-import OpenTSLMKit
+import PocketTSLM
 
 struct RunnerConfig {
 
@@ -94,7 +94,7 @@ struct RunnerConfig {
 }
 
 let config = RunnerConfig(arguments: CommandLine.arguments)
-try Device.withDefaultDevice(.cpu) {
+try using(device: .cpu) {
     let pipeline = OpenTSLMSPPipeline(hiddenSize: config.hiddenSize)
     try pipeline.loadWeights(
         encoderURL: URL(fileURLWithPath: config.encoderPath),

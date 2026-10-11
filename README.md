@@ -64,7 +64,7 @@ The app resolves mlx-swift 0.21.3, mlx-swift-examples at revision `0c50f71e` and
 **Parity tests (§3).** Component-level Python↔Swift parity (encoder, projector, fused pipeline, soft-prompt interleaver, RoPE, tokenizer, text serializer) against fixtures, no Python needed. Run them through Xcode, which compiles MLX's Metal shaders; `swift test` on the command line cannot:
 
 ```bash
-xcodebuild test -scheme OpenTSLMKit-Package -destination 'platform=macOS,arch=arm64,name=My Mac'
+xcodebuild test -scheme PocketTSLM-Package -destination 'platform=macOS,arch=arm64,name=My Mac'
 ```
 
 Tests whose fixtures are missing are skipped:

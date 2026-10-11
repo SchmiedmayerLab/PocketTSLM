@@ -1,7 +1,7 @@
 import XCTest
 import MLX
 import MLXRandom
-@testable import OpenTSLMKit
+@testable import PocketTSLM
 
 final class TransformerCNNEncoderTests: XCTestCase {
 

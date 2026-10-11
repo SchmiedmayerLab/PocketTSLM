@@ -8,7 +8,7 @@
 
 import XCTest
 
-@testable import OpenTSLMKit
+@testable import PocketTSLM
 
 /// Verifies the Swift serializer is byte-identical to OpenTSLM's Python
 /// `QADataset` formatter, so token counts in the §4 baseline are comparable to

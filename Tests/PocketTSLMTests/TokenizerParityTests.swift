@@ -1,6 +1,6 @@
 import XCTest
 import Tokenizers
-@testable import OpenTSLMKit
+@testable import PocketTSLM
 
 /// Python↔Swift tokenizer parity. The app embeds each prompt segment with
 /// `tokenizer.encode(text:, addSpecialTokens: true)` (swift-transformers, via MLXLLM).

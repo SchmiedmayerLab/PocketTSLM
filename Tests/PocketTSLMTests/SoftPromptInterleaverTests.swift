@@ -1,6 +1,6 @@
 import XCTest
 import MLX
-@testable import OpenTSLMKit
+@testable import PocketTSLM
 
 final class SoftPromptInterleaverTests: XCTestCase {
 
