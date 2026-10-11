@@ -231,48 +231,12 @@ class OpenTSLMInferenceService: DefaultInitializable, Module, EnvironmentAccessi
         llmRunner: LLMRunner,
         llmSession: LLMLocalSession?
     ) async throws -> String {
-        guard let llmSession else {
-            throw NSError(domain: "OpenTSLMInferenceService", code: 6,
-                          userInfo: [NSLocalizedDescriptionKey: "An LLM session is required."])
-        }
         let sweep = lengths ?? (ecg ? [100, 250, 500, 1000] : [100, 250, 500, 1000, 1500])
+        let model = try await bundledModel(ecg ? BundledAssets.ecgCheckpoint : BundledAssets.sleepCheckpoint, on: llmSession)
+        let row = try ecg ? BundledAssets.ecgRow(0) : BundledAssets.sleepRow(0, of: "sleep_cot_test20.csv")
+        let sample = try prepared(row, for: model)
 
-        let encoderName = ecg ? Constants.openTSLMECGEncoderCheckpointName : Constants.openTSLMEncoderCheckpointName
-        let projectorName = ecg ? Constants.openTSLMECGProjectorCheckpointName : Constants.openTSLMProjectorCheckpointName
-        guard let encoderURL = resolveAssetURL(
-            overridePath: Constants.openTSLMEncoderCheckpointPath, bundledName: encoderName, fileExtension: "safetensors"
-        ), let projectorURL = resolveAssetURL(
-            overridePath: Constants.openTSLMProjectorCheckpointPath, bundledName: projectorName, fileExtension: "safetensors"
-        ) else {
-            throw NSError(domain: "OpenTSLMInferenceService", code: 2,
-                          userInfo: [NSLocalizedDescriptionKey: "Missing encoder/projector checkpoint"])
-        }
-
-        let sample: OpenTSLMSPSample
-        if ecg {
-            sample = cappedSample(try loadECGQACoTSample(split: .test, sampleIndex: 0).sample)
-        } else {
-            guard let csvURL = resolveAssetURL(
-                overridePath: Constants.openTSLMSleepCSVPath,
-                bundledName: Constants.openTSLMSleepEvalCSVName,
-                fileExtension: "csv"
-            ) else {
-                throw NSError(domain: "OpenTSLMInferenceService", code: 1,
-                              userInfo: [NSLocalizedDescriptionKey: "Missing pinned sleep CSV"])
-            }
-            sample = cappedSample(try SleepEDFDataset.rawSample(csvURL: csvURL, rowIndex: 0),
-                                  limit: Constants.openTSLMSleepMaxTimeSeriesLength)
-        }
-
-        let pipeline = OpenTSLMSPPipeline(hiddenSize: 2048)
-        try pipeline.loadWeights(encoderURL: encoderURL, projectorURL: projectorURL)
-        let loraApplied = await applyLoRAIfAvailable(
-            on: llmSession,
-            checkpointName: ecg ? Constants.openTSLMECGLoRACheckpointName : Constants.openTSLMLoRACheckpointName
-        )
-        GPU.clearCache()
-
-        let benchmark = OpenTSLMBenchmark(pipeline: pipeline, llmRunner: llmRunner, session: llmSession)
+        let benchmark = OpenTSLMBenchmark(model: model)
         var reports: [OpenTSLMBenchmark.Report] = []
         var thermalStates: [String] = []
         var lowPowerModes: [Bool] = []
@@ -284,8 +248,7 @@ class OpenTSLMInferenceService: DefaultInitializable, Module, EnvironmentAccessi
             logger.info("repeated benchmark: run \(run + 1, privacy: .public) starting, thermalState=\(thermal, privacy: .public) lowPower=\(lowPower, privacy: .public)")
             let report = try await benchmark.run(
                 sample: sample, lengths: sweep, maxTokens: maxTokens,
-                contextWindow: contextWindow, maxPromptPositions: maxPromptPositions,
-                loraApplied: loraApplied)
+                contextWindow: contextWindow, maxPromptPositions: maxPromptPositions)
             reports.append(report)
             GPU.clearCache()
             logger.info("repeated benchmark (\(ecg ? "ecg" : "eeg", privacy: .public)): run \(run + 1, privacy: .public)/\(repeats, privacy: .public) done")
@@ -324,17 +287,10 @@ class OpenTSLMInferenceService: DefaultInitializable, Module, EnvironmentAccessi
         let report = RepeatedReport(
             modality: ecg ? "ecg" : "eeg", repeats: reports.count, lengths: sweep,
             maxTokens: maxTokens, maxPromptPositions: maxPromptPositions,
-            loraApplied: loraApplied, thermalStatePerRun: thermalStates,
+            loraApplied: true, thermalStatePerRun: thermalStates,
             lowPowerModePerRun: lowPowerModes, arms: arms)
 
-        let encoder = JSONEncoder()
-        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
-        if let json = try? encoder.encode(report),
-           let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first {
-            let name = ecg ? "opentslm_repeated_ecg.json" : "opentslm_repeated_eeg.json"
-            try? json.write(to: docs.appendingPathComponent(name))
-            logger.info("repeated benchmark: wrote \(name, privacy: .public)")
-        }
+        writeToDocuments(report, name: ecg ? "opentslm_repeated_ecg.json" : "opentslm_repeated_eeg.json")
 
         var lines = ["Repeated context-economics (\(ecg ? "12-lead ECG" : "single-channel EEG"), \(reports.count) runs, greedy, max \(maxTokens) new tokens)",
                      "positions are analytic; TTFT and peak memory are mean +/- SD over runs",
@@ -425,14 +381,22 @@ class OpenTSLMInferenceService: DefaultInitializable, Module, EnvironmentAccessi
         logger.info("\(eval, privacy: .public) eval [\(row.index + 1, privacy: .public)/\(count, privacy: .public)] gt=\(row.groundTruth ?? "nil", privacy: .public) pred=\(row.predicted ?? "nil", privacy: .public) \(row.correct ? "OK" : "X", privacy: .public)")
     }
 
-    private func writeToDocuments(_ report: Evaluation.Report, name: String) {
-        guard let json = try? report.json(),
-              let documents = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first else {
+    /// Writes `report` to Documents as pretty-printed JSON with sorted keys. `echo` also prints it
+    /// to the console, so all fields are copyable without pulling the file off the device.
+    private func writeToDocuments(_ report: some Encodable, name: String, echo: Bool = false) {
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+        guard let json = try? encoder.encode(report) else {
             return
         }
-        let url = documents.appendingPathComponent(name)
-        try? json.write(to: url)
-        logger.info("eval: wrote \(url.path, privacy: .public)")
+        if let documents = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first {
+            let url = documents.appendingPathComponent(name)
+            try? json.write(to: url)
+            logger.info("wrote \(url.path, privacy: .public)")
+        }
+        if echo {
+            print("=== \(name) ===\n\(String(decoding: json, as: UTF8.self))\n=== end \(name) ===")
+        }
     }
 
     private func summary(of report: Evaluation.Report, title: String, columnWidth: Int) -> String {
@@ -453,7 +417,6 @@ class OpenTSLMInferenceService: DefaultInitializable, Module, EnvironmentAccessi
     /// latency, decode tokens/s, peak GPU memory, and the context-window ceiling for
     /// each encoding; writes the full JSON to Documents and returns a summary string.
     func runContextEconomicsBenchmark(
-        split: SleepEDFDataset.Split = .test,
         sampleIndex: Int = 0,
         lengths: [Int] = [100, 250, 500, 1000, 1500],
         maxTokens: Int = 200,
@@ -462,66 +425,19 @@ class OpenTSLMInferenceService: DefaultInitializable, Module, EnvironmentAccessi
         llmRunner: LLMRunner,
         llmSession: LLMLocalSession?
     ) async throws -> String {
-        guard let llmSession else {
-            throw NSError(domain: "OpenTSLMInferenceService", code: 6, userInfo: [NSLocalizedDescriptionKey: "An LLM session is required to run the benchmark."])
-        }
-        guard let csvURL = resolveAssetURL(
-            overridePath: Constants.openTSLMSleepCSVPath,
-            bundledName: Constants.openTSLMSleepCSVName,
-            fileExtension: "csv"
-        ) else {
-            throw NSError(domain: "OpenTSLMInferenceService", code: 1, userInfo: [NSLocalizedDescriptionKey: "Missing sleep CSV in bundle/OpenTSLM or override path"])
-        }
-        guard let encoderURL = resolveAssetURL(
-            overridePath: Constants.openTSLMEncoderCheckpointPath,
-            bundledName: Constants.openTSLMEncoderCheckpointName,
-            fileExtension: "safetensors"
-        ) else {
-            throw NSError(domain: "OpenTSLMInferenceService", code: 2, userInfo: [NSLocalizedDescriptionKey: "Missing encoder checkpoint in bundle/OpenTSLM or override path"])
-        }
-        guard let projectorURL = resolveAssetURL(
-            overridePath: Constants.openTSLMProjectorCheckpointPath,
-            bundledName: Constants.openTSLMProjectorCheckpointName,
-            fileExtension: "safetensors"
-        ) else {
-            throw NSError(domain: "OpenTSLMInferenceService", code: 3, userInfo: [NSLocalizedDescriptionKey: "Missing projector checkpoint in bundle/OpenTSLM or override path"])
-        }
-
+        let model = try await bundledModel(BundledAssets.sleepCheckpoint, on: llmSession)
         // Use a fixed raw CSV row (no split) — the parity-verified sample whose generation
         // matches the Python reference — so the benchmark's decoded text is coherent and
         // deterministic. Cost metrics (positions/prefill/memory) are sample-independent.
-        let safeIndex = max(sampleIndex, 0)
-        let sample = try SleepEDFDataset.rawSample(csvURL: csvURL, rowIndex: safeIndex)
-
-        let pipeline = OpenTSLMSPPipeline(hiddenSize: 2048)
-        try pipeline.loadWeights(encoderURL: encoderURL, projectorURL: projectorURL)
-
-        // Apply the SP LoRA to the shared backbone (changes generated content, not
-        // prefill/throughput/memory — see OpenTSLMBenchmark header).
-        let loraApplied = await applyLoRAIfAvailable(on: llmSession)
-        GPU.clearCache()
-
-        let benchmark = OpenTSLMBenchmark(pipeline: pipeline, llmRunner: llmRunner, session: llmSession)
-        let report = try await benchmark.run(
+        let sample = try prepared(BundledAssets.sleepRow(sampleIndex, of: "sleep_cot.csv"), for: model)
+        let report = try await OpenTSLMBenchmark(model: model).run(
             sample: sample,
             lengths: lengths,
             maxTokens: maxTokens,
             contextWindow: contextWindow,
-            maxPromptPositions: maxPromptPositions,
-            loraApplied: loraApplied)
-
-        let encoder = JSONEncoder()
-        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
-        if let json = try? encoder.encode(report) {
-            if let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first {
-                let url = docs.appendingPathComponent("opentslm_context_economics.json")
-                try? json.write(to: url)
-                logger.info("benchmark: wrote \(url.path, privacy: .public)")
-            }
-            print("=== opentslm_context_economics.json ===\n\(String(decoding: json, as: UTF8.self))\n=== end opentslm_context_economics.json ===")
-        }
-
-        return report.formattedSummary(split: "raw-row", sampleIndex: safeIndex)
+            maxPromptPositions: maxPromptPositions)
+        writeToDocuments(report, name: "opentslm_context_economics.json", echo: true)
+        return report.formattedSummary(split: "raw-row", sampleIndex: max(sampleIndex, 0))
     }
 
     /// ECG variant of the §4 benchmark: the 12-lead ECG-QA CoT sample swept over per-lead
@@ -529,7 +445,6 @@ class OpenTSLMInferenceService: DefaultInitializable, Module, EnvironmentAccessi
     /// 12 leads use ~12× the positions of the 1-lead sleep case, so the soft-prompt arm
     /// relies on ``MLXEmbeddingGenerator``'s chunked prefill to avoid OOM at longer lengths.
     func runContextEconomicsBenchmarkECG(
-        split: ECGQACoTDataset.Split = .test,
         sampleIndex: Int = 0,
         lengths: [Int] = [100, 250, 500, 1000],
         maxTokens: Int = 200,
@@ -538,58 +453,16 @@ class OpenTSLMInferenceService: DefaultInitializable, Module, EnvironmentAccessi
         llmRunner: LLMRunner,
         llmSession: LLMLocalSession?
     ) async throws -> String {
-        guard let llmSession else {
-            throw NSError(domain: "OpenTSLMInferenceService", code: 6, userInfo: [NSLocalizedDescriptionKey: "An LLM session is required to run the benchmark."])
-        }
-        guard let encoderURL = resolveAssetURL(
-            overridePath: Constants.openTSLMEncoderCheckpointPath,
-            bundledName: Constants.openTSLMECGEncoderCheckpointName,
-            fileExtension: "safetensors"
-        ) else {
-            throw NSError(domain: "OpenTSLMInferenceService", code: 2, userInfo: [NSLocalizedDescriptionKey: "Missing ECG encoder checkpoint in bundle/OpenTSLM or override path"])
-        }
-        guard let projectorURL = resolveAssetURL(
-            overridePath: Constants.openTSLMProjectorCheckpointPath,
-            bundledName: Constants.openTSLMECGProjectorCheckpointName,
-            fileExtension: "safetensors"
-        ) else {
-            throw NSError(domain: "OpenTSLMInferenceService", code: 3, userInfo: [NSLocalizedDescriptionKey: "Missing ECG projector checkpoint in bundle/OpenTSLM or override path"])
-        }
-
-        let loaded = try loadECGQACoTSample(split: split, sampleIndex: sampleIndex)
-        let sample = loaded.sample
-
-        // Encoder built with default maxPatches; loadWeights replaces pos_embed with the
-        // ECG checkpoint's (1024), so the default pipeline works for ECG too.
-        let pipeline = OpenTSLMSPPipeline(hiddenSize: 2048)
-        try pipeline.loadWeights(encoderURL: encoderURL, projectorURL: projectorURL)
-
-        let loraApplied = await applyLoRAIfAvailable(on: llmSession, checkpointName: Constants.openTSLMECGLoRACheckpointName)
-        GPU.clearCache()
-
-        let benchmark = OpenTSLMBenchmark(pipeline: pipeline, llmRunner: llmRunner, session: llmSession)
-        let report = try await benchmark.run(
+        let model = try await bundledModel(BundledAssets.ecgCheckpoint, on: llmSession)
+        let sample = try prepared(BundledAssets.ecgRow(sampleIndex), for: model)
+        let report = try await OpenTSLMBenchmark(model: model).run(
             sample: sample,
             lengths: lengths,
             maxTokens: maxTokens,
             contextWindow: contextWindow,
-            maxPromptPositions: maxPromptPositions,
-            loraApplied: loraApplied)
-
-        let encoder = JSONEncoder()
-        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
-        if let json = try? encoder.encode(report) {
-            if let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first {
-                let url = docs.appendingPathComponent("opentslm_context_economics_ecg.json")
-                try? json.write(to: url)
-                logger.info("benchmark(ecg): wrote \(url.path, privacy: .public)")
-            }
-            // Dump full JSON to the Xcode console so all fields (prefill latency, tokens,
-            // output text, exact bytes) are copyable without pulling the file off-device.
-            print("=== opentslm_context_economics_ecg.json ===\n\(String(decoding: json, as: UTF8.self))\n=== end opentslm_context_economics_ecg.json ===")
-        }
-
-        return report.formattedSummary(split: "ecg-\(split.rawValue)", sampleIndex: sampleIndex)
+            maxPromptPositions: maxPromptPositions)
+        writeToDocuments(report, name: "opentslm_context_economics_ecg.json", echo: true)
+        return report.formattedSummary(split: "ecg-test", sampleIndex: sampleIndex)
     }
 
     // MARK: - Bundled models and data
@@ -620,6 +493,28 @@ class OpenTSLMInferenceService: DefaultInitializable, Module, EnvironmentAccessi
                 templateAnswersURL: evaluationFile("ecg_qa_template_answers.json")
             )
         }
+
+        /// Row `index` of a bundled Sleep-EDF export, or its last row if the export is shorter.
+        static func sleepRow(_ index: Int, of csvName: String) throws -> EvaluationSample {
+            let rows = try SleepEDFDataset.evaluationSamples(csvURL: evaluationFile(csvName), count: max(index, 0) + 1)
+            guard let row = rows.last else {
+                throw NSError(
+                    domain: "OpenTSLMInferenceService", code: 15,
+                    userInfo: [NSLocalizedDescriptionKey: "\(csvName) has no rows"])
+            }
+            return row
+        }
+
+        /// Row `index` of the bundled ECG-QA test export, or its last row if the export is shorter.
+        static func ecgRow(_ index: Int) throws -> EvaluationSample {
+            let dataset = try ecgQADataset()
+            guard dataset.count > 0 else {
+                throw NSError(
+                    domain: "OpenTSLMInferenceService", code: 15,
+                    userInfo: [NSLocalizedDescriptionKey: "ecg_qa_cot_test.csv has no rows"])
+            }
+            return try dataset.evaluationSample(at: min(max(index, 0), dataset.count - 1))
+        }
     }
 
     /// The bundled checkpoint `name` on the session's base model.
@@ -630,6 +525,11 @@ class OpenTSLMInferenceService: DefaultInitializable, Module, EnvironmentAccessi
                 userInfo: [NSLocalizedDescriptionKey: "An LLM session is required."])
         }
         return try TSLM(base: base, checkpoint: TSLMCheckpoint(directory: BundledAssets.item("Checkpoints/\(name)")))
+    }
+
+    /// `row` as `model`'s input, carrying the row's label and rationale.
+    private func prepared(_ row: EvaluationSample, for model: TSLM) throws -> OpenTSLMSPSample {
+        try model.checkpoint.makeSample(row.input, label: row.label, answer: row.rationale)
     }
 
     /// Resolves the encoder/projector checkpoints, loads the SP pipeline, and projects the

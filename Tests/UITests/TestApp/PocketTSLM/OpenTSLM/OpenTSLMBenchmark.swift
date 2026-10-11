@@ -11,8 +11,6 @@ import MLX
 import MLXLMCommon
 import OSLog
 import PocketTSLM
-import SpeziLLM
-import SpeziLLMLocal
 import Tokenizers
 
 /// Context-economics benchmark for the paper's §4 headline comparison: the same
@@ -31,9 +29,9 @@ import Tokenizers
 ///
 /// Confounders handled / noted:
 ///  - Same backbone weights and decoder for both arms; greedy decoding for
-///    determinism. The SP LoRA (if applied by the caller) is shared by both —
-///    it changes generated *content*, not prefill/throughput/memory, so the
-///    headline metrics are unaffected (documented in the report header).
+///    determinism. The checkpoint's LoRA is shared by both — it changes
+///    generated *content*, not prefill/throughput/memory, so the headline
+///    metrics are unaffected (documented in the report header).
 ///  - Soft prompts cost sequence *positions* but zero vocabulary tokens; the text
 ///    arm costs BPE tokens. We report positions for both (the currency that drives
 ///    prefill, memory, and the context ceiling) plus the time-series sub-count.
@@ -83,14 +81,10 @@ public final class OpenTSLMBenchmark {
     }
 
     private let logger = Logger(subsystem: "PocketTSLM", category: "OpenTSLMBenchmark")
-    private let pipeline: OpenTSLMSPPipeline
-    private let llmRunner: LLMRunner
-    private let session: LLMLocalSession
+    private let model: TSLM
 
-    public init(pipeline: OpenTSLMSPPipeline, llmRunner: LLMRunner, session: LLMLocalSession) {
-        self.pipeline = pipeline
-        self.llmRunner = llmRunner
-        self.session = session
+    public init(model: TSLM) {
+        self.model = model
     }
 
     /// Run both encodings across a series-length sweep.
@@ -108,14 +102,11 @@ public final class OpenTSLMBenchmark {
         lengths: [Int],
         maxTokens: Int = 200,
         contextWindow: Int = 8192,
-        maxPromptPositions: Int = 2048,
-        loraApplied: Bool = false
+        maxPromptPositions: Int = 2048
     ) async throws -> Report {
-        guard let container = await MainActor.run(body: { session.modelContainer }) else {
-            throw NSError(
-                domain: "OpenTSLMBenchmark", code: 1,
-                userInfo: [NSLocalizedDescriptionKey: "LLM session is not ready"])
-        }
+        try await model.activateAdapter()
+        GPU.clearCache()
+        let container = model.base
 
         var rows: [LengthComparison] = []
         for length in lengths {
@@ -123,14 +114,14 @@ public final class OpenTSLMBenchmark {
             // Soft-prompt embeddings are produced outside the decoder container,
             // mirroring OpenTSLMInferenceService's projection step (projectSample
             // already forces an eval internally).
-            let projected = pipeline.projectSample(truncated)
+            let projected = model.pipeline.projectSample(truncated)
 
             let comparison: LengthComparison = try await container.perform { context in
                 guard let model = context.model as? EmbeddingLlamaModel else {
                     throw NSError(
                         domain: "OpenTSLMBenchmark", code: 2,
                         userInfo: [NSLocalizedDescriptionKey:
-                            "Loaded model is not EmbeddingLlamaModel — ensure EmbeddingLlamaModelRegistration.register() ran."])
+                            "Loaded model is not EmbeddingLlamaModel — ensure registerModelTypes() ran."])
                 }
                 let tokenizer = context.tokenizer
 
@@ -157,7 +148,7 @@ public final class OpenTSLMBenchmark {
 
         let (textMax, spMax) = Self.contextCeiling(rows: rows, contextWindow: contextWindow)
         return Report(
-            contextWindow: contextWindow, loraApplied: loraApplied, rows: rows,
+            contextWindow: contextWindow, loraApplied: true, rows: rows,
             textMaxSeriesLength: textMax, softPromptMaxSeriesLength: spMax)
     }
 
