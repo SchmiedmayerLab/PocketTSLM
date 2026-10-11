@@ -7,6 +7,7 @@ path = [
     "Tests/UITests/TestApp.xctestplan",
     "scripts/assets.sha256",
     "tools/tasks/**",
+    "Tests/PocketTSLMTests/Fixtures/**",
 ]
 SPDX-FileCopyrightText = "2026 Schmiedmayer Lab and the project authors (see CONTRIBUTORS.md)"
 SPDX-License-Identifier = "MIT"
