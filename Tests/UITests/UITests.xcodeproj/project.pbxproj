@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		B3B746EE329C2EF90CAB7C8B /* PocketTSLM in Frameworks */ = {isa = PBXBuildFile; productRef = DF65CA532F33F98BD72E186F /* PocketTSLM */; };
 		440072012CFD20ED00DC7C5A /* SpeziLLMLocal in Frameworks */ = {isa = PBXBuildFile; productRef = 440072002CFD20ED00DC7C5A /* SpeziLLMLocal */; };
 		440072032CFD20ED00DC7C5A /* SpeziLLMLocalDownload in Frameworks */ = {isa = PBXBuildFile; productRef = 440072022CFD20ED00DC7C5A /* SpeziLLMLocalDownload */; };
 		4459F7C12D2DE2C500F0190D /* SpeziChat in Frameworks */ = {isa = PBXBuildFile; productRef = 4459F7C02D2DE2C500F0190D /* SpeziChat */; };
@@ -52,6 +53,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				B3B746EE329C2EF90CAB7C8B /* PocketTSLM in Frameworks */,
 				440072032CFD20ED00DC7C5A /* SpeziLLMLocalDownload in Frameworks */,
 				4459F7C52D2DE31600F0190D /* SpeziOnboarding in Frameworks */,
 				440072012CFD20ED00DC7C5A /* SpeziLLMLocal in Frameworks */,
@@ -125,6 +127,7 @@
 			);
 			name = TestApp;
 			packageProductDependencies = (
+				DF65CA532F33F98BD72E186F /* PocketTSLM */,
 				440072002CFD20ED00DC7C5A /* SpeziLLMLocal */,
 				440072022CFD20ED00DC7C5A /* SpeziLLMLocalDownload */,
 				4459F7C02D2DE2C500F0190D /* SpeziChat */,
@@ -209,6 +212,7 @@
 			mainGroup = 4400719F2CFD092300DC7C5A;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
+				1D9C31CAE6E7A4BE19128C89 /* XCLocalSwiftPackageReference "../.." */,
 				440071FE2CFD206F00DC7C5A /* XCRemoteSwiftPackageReference "SpeziLLM" */,
 				4459F7BF2D2DE2C500F0190D /* XCRemoteSwiftPackageReference "SpeziChat" */,
 				4459F7C22D2DE2E300F0190D /* XCRemoteSwiftPackageReference "SpeziOnboarding" */,
@@ -610,6 +614,13 @@
 		};
 /* End XCConfigurationList section */
 
+/* Begin XCLocalSwiftPackageReference section */
+		1D9C31CAE6E7A4BE19128C89 /* XCLocalSwiftPackageReference "../.." */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = ../..;
+		};
+/* End XCLocalSwiftPackageReference section */
+
 /* Begin XCRemoteSwiftPackageReference section */
 		440071FE2CFD206F00DC7C5A /* XCRemoteSwiftPackageReference "SpeziLLM" */ = {
 			isa = XCRemoteSwiftPackageReference;
@@ -646,6 +657,11 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		DF65CA532F33F98BD72E186F /* PocketTSLM */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 1D9C31CAE6E7A4BE19128C89 /* XCLocalSwiftPackageReference "../.." */;
+			productName = PocketTSLM;
+		};
 		440072002CFD20ED00DC7C5A /* SpeziLLMLocal */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 440071FE2CFD206F00DC7C5A /* XCRemoteSwiftPackageReference "SpeziLLM" */;
