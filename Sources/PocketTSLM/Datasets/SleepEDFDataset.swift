@@ -8,24 +8,48 @@ public final class SleepEDFDataset {
         case test
     }
 
+    // Verbatim from OpenTSLM `src/time_series_datasets/sleep/SleepEDFCoTQADataset.py`
+    // (`_get_pre_prompt` / `_get_post_prompt`). The post-prompt is *not* a fill-in cue
+    // ending in "Answer:" — it's an instruction telling the model to produce a rationale
+    // and then end its own response with `Answer: <label>`. Diverging from this (as the
+    // previous Swift prompt did) makes greedy decoding skip straight to the label.
     public static let prePrompt = """
-    You are given a 30-second EEG time series segment. Your task is to classify the sleep stage based on the signal's characteristics.
 
-    """
+            You are given a 30-second EEG time series segment. Your task is to classify the sleep stage based on analysis of the data.
 
-    public static let postPrompt = """
-    Possible sleep stages are:
-            Wake, Non-REM stage 1, Non-REM stage 2, Non-REM stage 3, REM sleep, Movement
+            Instructions:
+            - Analyze the data objectively without presuming a particular label.
+            - Reason carefully and methodically about what the signal patterns suggest regarding sleep stage.
+            - Write your reasoning as a single, coherent paragraph. Do not use bullet points, lists, or section headers.
+            - Only reveal the correct class at the very end.
+            - Never state that you are uncertain or unable to classify the data. You must always provide a rationale and a final answer.
 
-    First, describe the key features of this EEG signal (amplitude, frequency, presence of specific waveforms). Then, based on your analysis, classify the sleep stage.
 
-    Answer:
-    """
+
+"""
+
+    // Note: ends with literal `Answer:` (open quote, no closing quote) — the prompt is
+    // mid-instruction and the model continues from there with its rationale and
+    // concludes with `Answer: <label>`. The trailing space in the Python source is
+    // NOT intentional: OpenTSLM's `QADataset._format_sample` strips it before
+    // tokenizing, and `OpenTSLMSPSample.init` strips it here for the same reason.
+    public static let postPrompt =
+        "Possible sleep stages are:\n"
+        + "        Wake, Non-REM stage 1, Non-REM stage 2, Non-REM stage 3, REM sleep, Movement\n"
+        + "\n"
+        + "        - Please now write your rationale. Make sure that your last word is the answer. You MUST end your response with \"Answer: "
 
     private let samples: [OpenTSLMSPSample]
 
-    public init(csvURL: URL, split: Split = .test, seed: UInt64 = 42) throws {
-        let rows = try Self.readRows(from: csvURL)
+    public init(csvURL: URL, split: Split = .test, seed: UInt64 = 42, maxRows: Int = 5000) throws {
+        guard maxRows > 0 else {
+            throw NSError(
+                domain: "SleepEDFDataset",
+                code: 7,
+                userInfo: [NSLocalizedDescriptionKey: "maxRows must be > 0"]
+            )
+        }
+        let rows = try Self.readRows(from: csvURL, maxRows: maxRows)
         let splitRows = Self.stratifiedSplit(rows: rows, split: split, seed: seed)
         self.samples = try splitRows.map(Self.convertRow)
     }
@@ -35,6 +59,17 @@ public final class SleepEDFDataset {
     public func sample(at index: Int) -> OpenTSLMSPSample {
         precondition(index >= 0 && index < samples.count, "sample index out of range")
         return samples[index]
+    }
+
+    /// Reads one raw CSV row (no train/val/test split) for deterministic single-sample
+    /// parity testing against the Python reference, which reads the same row.
+    public static func rawSample(csvURL: URL, rowIndex: Int = 0, maxRows: Int = 5000) throws -> OpenTSLMSPSample {
+        let rows = try readRows(from: csvURL, maxRows: maxRows)
+        guard !rows.isEmpty else {
+            throw NSError(domain: "SleepEDFDataset", code: 8, userInfo: [NSLocalizedDescriptionKey: "No rows in CSV"])
+        }
+        let idx = min(max(rowIndex, 0), rows.count - 1)
+        return try convertRow(rows[idx])
     }
 }
 
@@ -46,9 +81,14 @@ private extension SleepEDFDataset {
         let rationale: String
     }
 
-    static func readRows(from csvURL: URL) throws -> [Row] {
-        let csv = try String(contentsOf: csvURL, encoding: .utf8)
-        let records = parseCSV(csv)
+    static func readRows(from csvURL: URL, maxRows: Int) throws -> [Row] {
+        // Bundled sleep_cot.csv is ~300MB — read only a prefix on device.
+        let handle = try FileHandle(forReadingFrom: csvURL)
+        let prefix = try handle.read(upToCount: 20 * 1024 * 1024) ?? Data()
+        let csvPrefix = String(decoding: prefix, as: UTF8.self)
+        let safePrefix = csvPrefix.prefix(upTo: csvPrefix.lastIndex(of: "\n") ?? csvPrefix.endIndex)
+
+        let records = parseCSV(String(safePrefix))
         guard let header = records.first else {
             throw NSError(domain: "SleepEDFDataset", code: 1, userInfo: [NSLocalizedDescriptionKey: "CSV has no header"])
         }
@@ -63,9 +103,10 @@ private extension SleepEDFDataset {
         let rationaleIdx = columnIndex["rationale"]
 
         var rows: [Row] = []
-        rows.reserveCapacity(max(records.count - 1, 0))
+        rows.reserveCapacity(maxRows)
 
-        for record in records.dropFirst() where !record.isEmpty {
+        for record in records.dropFirst() where rows.count < maxRows {
+            guard !record.isEmpty else { continue }
             guard timeSeriesIdx < record.count, labelIdx < record.count else { continue }
             let rationale = (rationaleIdx != nil && rationaleIdx! < record.count) ? record[rationaleIdx!] : ""
             rows.append(Row(timeSeries: record[timeSeriesIdx], label: record[labelIdx], rationale: rationale))
@@ -191,7 +232,9 @@ private extension SleepEDFDataset {
                 continue
             }
 
-            if (ch == "\n" || ch == "\r") && !insideQuotes {
+            // NB: Swift treats "\r\n" as a single Character (grapheme cluster), so a CRLF file
+            // matches neither "\n" nor "\r" and the whole file collapses into one record.
+            if (ch == "\n" || ch == "\r" || ch == "\r\n") && !insideQuotes {
                 row.append(field)
                 field.removeAll(keepingCapacity: true)
                 if !row.isEmpty {
