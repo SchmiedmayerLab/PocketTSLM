@@ -14,9 +14,8 @@ import SpeziHealthKit
 /// One Apple Watch ECG recording, as read from HealthKit.
 ///
 /// Apple Watch records a single lead (`appleWatchSimilarToLeadI`) at ~512 Hz, whereas
-/// \gls{OPENTSLMSP}'s ECG checkpoint was trained on 12-lead PTB-XL at 100 Hz. The
-/// resampling and lead handling happen in `OpenTSLMInferenceService.makeOpenTSLMSample`,
-/// which documents the resulting distribution shift.
+/// OpenTSLM-SP's ECG checkpoint was trained on 12-lead PTB-XL at 100 Hz. PocketTSLM's
+/// `ECG.twelveLeads` resamples the lead and copies it to all 12 leads.
 struct ElectrocardiogramData {
     let startDate: Date
     let endDate: Date

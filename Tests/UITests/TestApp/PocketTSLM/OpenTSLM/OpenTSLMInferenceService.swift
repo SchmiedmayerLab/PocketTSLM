@@ -29,65 +29,30 @@ class OpenTSLMInferenceService: DefaultInitializable, Module, EnvironmentAccessi
         let groundTruth: String
     }
 
-    /// EEG/sleep single-sample interaction (fixed raw CSV row): projects, applies the SP
-    /// LoRA, and runs the LLM decode, returning the prompt and generated answer separately.
+    /// EEG/sleep single-sample interaction (fixed raw CSV row) with the sleep checkpoint,
+    /// returning the prompt and generated answer separately.
     func sleepSampleInteraction(
         sampleIndex: Int = 0,
         llmRunner: LLMRunner,
         llmSession: LLMLocalSession
     ) async throws -> SampleInteraction {
-        guard let csvURL = resolveAssetURL(
-            overridePath: Constants.openTSLMSleepCSVPath,
-            bundledName: Constants.openTSLMSleepCSVName,
-            fileExtension: "csv"
-        ) else {
-            throw NSError(domain: "OpenTSLMInferenceService", code: 1, userInfo: [NSLocalizedDescriptionKey: "Missing sleep CSV in bundle/OpenTSLM or override path"])
-        }
-        let sample = cappedSample(
-            try SleepEDFDataset.rawSample(csvURL: csvURL, rowIndex: max(sampleIndex, 0)),
-            limit: Constants.openTSLMSleepMaxTimeSeriesLength
-        )
-        let projected = try loadPipelineAndProject(sample)
-        GPU.clearCache()
-        _ = await applyLoRAIfAvailable(on: llmSession)
-        GPU.clearCache()
-        let openTSLMLLM = OpenTSLMLLM(llmRunner: llmRunner, session: llmSession)
-        let generatedText = try await openTSLMLLM.generate(
-            prePrompt: sample.prePrompt,
-            timeSeriesText: sample.timeSeriesText,
-            timeSeriesEmbeddings: projected,
-            postPrompt: sample.postPrompt,
-            maxTokens: 200
-        )
-        return SampleInteraction(prompt: promptText(for: sample), response: generatedText, groundTruth: sample.answer)
+        let model = try await bundledModel(BundledAssets.sleepCheckpoint, on: llmSession)
+        return try await interaction(with: model, on: prepared(BundledAssets.sleepRow(sampleIndex, of: "sleep_cot.csv"), for: model))
     }
 
-    /// 12-lead ECG-QA single-sample interaction (bundled sample) using the ECG-specific
-    /// encoder/projector/LoRA checkpoints.
+    /// 12-lead ECG-QA single-sample interaction (bundled test row) with the ECG checkpoint.
     func ecgSampleInteraction(
         sampleIndex: Int = 0,
         llmRunner: LLMRunner,
         llmSession: LLMLocalSession
     ) async throws -> SampleInteraction {
-        let loaded = try loadECGQACoTSample(split: .test, sampleIndex: sampleIndex)
-        let sample = cappedSample(loaded.sample)
-        let projected = try loadPipelineAndProject(
-            sample,
-            encoderName: Constants.openTSLMECGEncoderCheckpointName,
-            projectorName: Constants.openTSLMECGProjectorCheckpointName
-        )
-        GPU.clearCache()
-        _ = await applyLoRAIfAvailable(on: llmSession, checkpointName: Constants.openTSLMECGLoRACheckpointName)
-        GPU.clearCache()
-        let openTSLMLLM = OpenTSLMLLM(llmRunner: llmRunner, session: llmSession)
-        let generatedText = try await openTSLMLLM.generate(
-            prePrompt: sample.prePrompt,
-            timeSeriesText: sample.timeSeriesText,
-            timeSeriesEmbeddings: projected,
-            postPrompt: sample.postPrompt,
-            maxTokens: 200
-        )
-        return SampleInteraction(prompt: promptText(for: sample), response: generatedText, groundTruth: sample.answer)
+        let model = try await bundledModel(BundledAssets.ecgCheckpoint, on: llmSession)
+        return try await interaction(with: model, on: prepared(BundledAssets.ecgRow(sampleIndex), for: model))
+    }
+
+    private func interaction(with model: TSLM, on sample: OpenTSLMSPSample) async throws -> SampleInteraction {
+        let response = try await model.generate(sample, maxTokens: 200)
+        return SampleInteraction(prompt: promptText(for: sample), response: response, groundTruth: sample.answer)
     }
 
     /// The displayable text prompt for a sample (pre-prompt, per-lead time-series
@@ -97,9 +62,8 @@ class OpenTSLMInferenceService: DefaultInitializable, Module, EnvironmentAccessi
     }
 
     /// Runs OpenTSLM-SP on a real (e.g. HealthKit) ECG recording and returns the model's
-    /// analysis text. Unlike ``runECGSampleInference`` (a debug command using a hardcoded/JSON
-    /// sample and emitting a verbose report), this uses the supplied recording, requires a live
-    /// LLM session, and returns a clean user-facing answer.
+    /// analysis text. Unlike the bundled-sample commands, this uses the supplied recording,
+    /// requires a live LLM session, and returns a clean user-facing answer.
     func runECGInference(
         voltages: [Double],
         samplingFrequency: Double,
@@ -109,11 +73,6 @@ class OpenTSLMInferenceService: DefaultInitializable, Module, EnvironmentAccessi
         llmRunner: LLMRunner?,
         llmSession: LLMLocalSession?
     ) async throws -> String {
-        guard let llmRunner, let llmSession else {
-            throw NSError(
-                domain: "OpenTSLMInferenceService", code: 7,
-                userInfo: [NSLocalizedDescriptionKey: "An LLM session is required to analyze the ECG."])
-        }
         guard !voltages.isEmpty else {
             throw NSError(
                 domain: "OpenTSLMInferenceService", code: 8,
@@ -121,37 +80,19 @@ class OpenTSLMInferenceService: DefaultInitializable, Module, EnvironmentAccessi
         }
 
         logger.info("runECGInference: start voltages=\(voltages.count, privacy: .public) freq=\(samplingFrequency, privacy: .public)")
-        let ecg = ECGSample(
-            source: .healthkit,
-            samplingFrequency: samplingFrequency,
-            classification: classification,
-            symptomsStatus: symptomsStatus,
-            averageHeartRate: averageHeartRate,
-            voltages: voltages
+        let model = try await bundledModel(BundledAssets.ecgCheckpoint, on: llmSession)
+        // Apple Watch records one lead; it is copied to the 12 leads the checkpoint expects, which
+        // is a distribution shift from PTB-XL. The question mirrors ECG-QA's most common
+        // closed-set template, which greedy decoding answers far more reliably than an open one.
+        let input = TSLMInput(
+            series: ECG.twelveLeads(fromLeadI: voltages, samplingRate: samplingFrequency),
+            context: [
+                "clinicalContext": "Single-lead ambulatory ECG recording (Lead I equivalent, replicated across the standard 12 leads).",
+                "question": "Is the cardiac rhythm shown in this ECG consistent with atrial fibrillation?"
+            ],
+            answerOptions: ["yes", "no"]
         )
-        let sample = cappedSample(makeOpenTSLMSample(from: ecg))
-        let projected = try loadPipelineAndProject(
-            sample,
-            encoderName: Constants.openTSLMECGEncoderCheckpointName,
-            projectorName: Constants.openTSLMECGProjectorCheckpointName
-        )
-        logger.info("runECGInference: projected series=\(projected.count, privacy: .public) shape0=\(projected.first?.shape ?? [], privacy: .public)")
-
-        let loraApplied = await applyLoRAIfAvailable(
-            on: llmSession,
-            checkpointName: Constants.openTSLMECGLoRACheckpointName
-        )
-        GPU.clearCache()
-        logger.info("runECGInference: loraApplied=\(loraApplied, privacy: .public); calling generate")
-
-        let openTSLMLLM = OpenTSLMLLM(llmRunner: llmRunner, session: llmSession)
-        let analysis = try await openTSLMLLM.generate(
-            prePrompt: sample.prePrompt,
-            timeSeriesText: sample.timeSeriesText,
-            timeSeriesEmbeddings: projected,
-            postPrompt: sample.postPrompt,
-            maxTokens: 200
-        )
+        let analysis = try await model.generate(input, maxTokens: 200)
         logger.info("runECGInference: generate returned \(analysis.count, privacy: .public) chars")
         let trimmed = analysis.trimmingCharacters(in: .whitespacesAndNewlines)
         return trimmed.isEmpty ? "The ECG model did not produce an analysis." : trimmed
@@ -872,129 +813,4 @@ class OpenTSLMInferenceService: DefaultInitializable, Module, EnvironmentAccessi
 
         return overrideURL
     }
-
-    // PTB-XL / ECG-QA standard 12-lead order — must match what the encoder was
-    // trained to receive in the per-lead text labels.
-    private static let ecgLeadNames = ["I", "II", "III", "aVR", "aVL", "aVF", "V1", "V2", "V3", "V4", "V5", "V6"]
-
-    private static let ecgTargetSamplingRate: Double = 100  // Hz — matches ECG-QA training (`[::5]` from 500 Hz)
-    /// Window length per lead. Capped to the global series-length budget so we don't
-    /// generate samples we'd only truncate; ECG-QA training was on 10 s windows but
-    /// 12 × 1000 over-runs the iOS 6 GB process limit at prefill time.
-    private static var ecgSamplesPerLead: Int { Constants.openTSLMMaxTimeSeriesLength }
-
-    private func makeOpenTSLMSample(from ecg: ECGSample) -> OpenTSLMSPSample {
-        // Downsample to 100 Hz and window to 1000 samples (10 s) to match ECG-QA training.
-        let downsampled = Self.downsampleAndWindow(
-            ecg.voltages,
-            inputRate: ecg.samplingFrequency,
-            outputRate: Self.ecgTargetSamplingRate,
-            count: Self.ecgSamplesPerLead
-        )
-        let stats = Self.statistics(of: downsampled)
-        let normalizedLead = downsampled.map { Float(($0 - stats.mean) / stats.std) }
-
-        // Apple Watch is hardware-single-lead — replicate Lead I across all 12 channels
-        // so the encoder receives the 12-series shape it was trained on. The per-lead
-        // mean/std in each label are therefore identical, by construction; that's an
-        // acknowledged distribution shift vs. real PTB-XL multi-lead recordings.
-        var timeSeries: [[Float]] = []
-        timeSeries.reserveCapacity(Self.ecgLeadNames.count)
-        var timeSeriesText: [String] = []
-        timeSeriesText.reserveCapacity(Self.ecgLeadNames.count)
-        for name in Self.ecgLeadNames {
-            timeSeries.append(normalizedLead)
-            timeSeriesText.append("This is ECG Lead \(name), it has mean \(String(format: "%.4f", stats.mean)) and std \(String(format: "%.4f", stats.std)):")
-        }
-
-        return OpenTSLMSPSample(
-            prePrompt: ECGQACoTDataset.prePrompt(
-                clinicalContext: ecg.clinicalContext,
-                question: ecg.question
-            ),
-            timeSeriesText: timeSeriesText,
-            timeSeries: timeSeries,
-            postPrompt: ECGQACoTDataset.postPrompt(possibleAnswers: ecg.possibleAnswers),
-            label: ecg.classification ?? "unknown",
-            answer: ecg.summary
-        )
-    }
-
-    /// Verbatim from OpenTSLM `src/time_series_datasets/ecg_qa/ECGQACoTQADataset.py:_get_pre_prompt`,
-    /// with the runtime-supplied `clinical_context` and `question` substituted.
-
-    /// Verbatim from `ECGQACoTQADataset.py:_get_post_prompt`. Two branches:
-    ///   - if `possibleAnswers` is non-empty → the templated branch, which lists the closed
-    ///     answer set the model was trained to pick from.
-    ///   - otherwise → the open-ended branch.
-    /// Both end with literal `"Answer: ` (open quote + trailing space, no closing quote) —
-    /// the model continues from there with its rationale and concludes `Answer: <label>`.
-
-    /// Nearest-neighbor resampling to `count` samples at `outputRate`, starting at t=0.
-    /// Pads with zeros if the source is shorter than the requested window.
-    private static func downsampleAndWindow(
-        _ voltages: [Double],
-        inputRate: Double,
-        outputRate: Double,
-        count: Int
-    ) -> [Double] {
-        guard !voltages.isEmpty, inputRate > 0, outputRate > 0, count > 0 else {
-            return Array(repeating: 0, count: max(count, 0))
-        }
-        let step = inputRate / outputRate
-        var out: [Double] = []
-        out.reserveCapacity(count)
-        for i in 0 ..< count {
-            let srcIdx = Int(Double(i) * step)
-            out.append(srcIdx < voltages.count ? voltages[srcIdx] : 0)
-        }
-        return out
-    }
-
-    private static func statistics(of values: [Double]) -> (mean: Double, std: Double) {
-        guard !values.isEmpty else { return (0, 1) }
-        let mean = values.reduce(0, +) / Double(values.count)
-        let variance = values.reduce(0) { partial, value in
-            let d = value - mean
-            return partial + d * d
-        } / Double(values.count)
-        return (mean, max(sqrt(variance), 1e-6))
-    }
-
-}
-
-private enum ECGSampleSource: String {
-    case hardcoded
-    case healthkit
-    case healthkitJSON = "healthkit_json"
-    case jsonOverride = "json_override"
-}
-
-private struct ECGSample {
-    let source: ECGSampleSource
-    let samplingFrequency: Double
-    let classification: String?
-    let symptomsStatus: String?
-    let averageHeartRate: Double?
-    let voltages: [Double]
-    // ECG-QA-style framing for the model's pre/post prompts. Defaulted so existing
-    // call sites that don't supply per-sample fields still compile.
-    // The default mirrors the most common ECG-QA *closed-set* template (yes/no
-    // about a single condition) — ECG-QA was trained heavily on these and greedy
-    // decoding picks from the list much more reliably than from an open question.
-    var clinicalContext: String = "Single-lead ambulatory ECG recording (Lead I equivalent, replicated across the standard 12 leads)."
-    var question: String = "Is the cardiac rhythm shown in this ECG consistent with atrial fibrillation?"
-    var possibleAnswers: [String] = ["yes", "no"]
-
-    var sourceDescription: String {
-        source.rawValue
-    }
-
-    var summary: String {
-        let classificationText = classification ?? "unknown"
-        let symptomsText = symptomsStatus ?? "unknown"
-        let heartRateText = averageHeartRate.map { String(format: "%.1f", $0) } ?? "unknown"
-        return "classification=\(classificationText), symptoms_status=\(symptomsText), average_heart_rate=\(heartRateText)"
-    }
-
 }
