@@ -5,9 +5,9 @@ set -euo pipefail
 
 OPENTSLMMLX="${OPENTSLMMLX:-$HOME/Documents/GitHub/OpenTSLMMLX}"
 OPENTSLM_SRC="${OPENTSLM_SRC:-$HOME/OpenTSLM/src}"
-OUT_JSON="${OUT_JSON:-$HOME/Documents/PocketTSLM/PocketTSLM/Supporting Files/OpenTSLM/ecg_qa_cot_test_0.json}"
+OUT_JSON="${OUT_JSON:-$(cd "$(dirname "$0")/.." && pwd)/Tests/UITests/TestApp/Supporting Files/OpenTSLM/ecg_qa_cot_test_0.json}"
 OUT_TXT="${OUT_TXT:-$OPENTSLMMLX/ecg_golden_output.txt}"
-OUT_DIR="${OUT_DIR:-$HOME/Documents/PocketTSLM/PocketTSLM/Supporting Files/OpenTSLM}"
+OUT_DIR="${OUT_DIR:-$(cd "$(dirname "$0")/.." && pwd)/Tests/UITests/TestApp/Supporting Files/OpenTSLM}"
 
 cd "$OPENTSLMMLX"
 source .venv/bin/activate

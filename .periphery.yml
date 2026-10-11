@@ -6,8 +6,8 @@
 # SPDX-License-Identifier: MIT
 #
 
-project: PocketTSLM.xcodeproj
+project: Tests/UITests/UITests.xcodeproj
 schemes:
-- PocketTSLM
+- TestApp
 report_exclude:
 - "**/GeneratedOpenAIClient/OpenAPIGenerator/GeneratedSources/**"

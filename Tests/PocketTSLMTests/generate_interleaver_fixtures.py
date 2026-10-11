@@ -8,7 +8,7 @@ max. Values are irrelevant to the logic, so we use deterministic random embeddin
 realistic ECG-ish structure: a 12-"lead" sample and a shorter 4-segment sample (to exercise
 padding), with intra-segment padding (to exercise the per-segment trim).
 
-Run:  python3 src-swift/Tests/OpenTSLMKitTests/generate_interleaver_fixtures.py
+Run:  python3 Tests/PocketTSLMTests/generate_interleaver_fixtures.py
 """
 
 import os

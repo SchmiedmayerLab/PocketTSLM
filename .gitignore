@@ -34,8 +34,8 @@ checkpoints/
 data/
 
 # Model files and evaluation data, restored by scripts/fetch_assets.sh
-PocketTSLM/Supporting Files/LocalLLM/
-PocketTSLM/Supporting Files/OpenTSLM/
+Tests/UITests/TestApp/Supporting Files/LocalLLM/
+Tests/UITests/TestApp/Supporting Files/OpenTSLM/
 
 # Converted checkpoints prepared for upload to Hugging Face
 upload/
@@ -43,9 +43,8 @@ upload/
 # Python bytecode
 __pycache__/
 
-# Large OpenTSLM parity fixtures and MLX's compiled shaders. The real_* fixtures are
-# regenerable with the generator scripts in src-swift/Tests/OpenTSLMKitTests/; see the README
+# Large OpenTSLM parity fixtures. The real_* fixtures are
+# regenerable with the generator scripts in Tests/PocketTSLMTests/; see the README
 # for encoder_weights. The small fixtures are committed.
-src-swift/Tests/OpenTSLMKitTests/Fixtures/real_*.safetensors
-src-swift/Tests/OpenTSLMKitTests/Fixtures/encoder_weights.safetensors
-src-swift/default.metallib
+Tests/PocketTSLMTests/Fixtures/real_*.safetensors
+Tests/PocketTSLMTests/Fixtures/encoder_weights.safetensors

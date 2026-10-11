@@ -4,7 +4,7 @@ set -euo pipefail
 
 OPENTSLMMLX="${OPENTSLMMLX:-$HOME/Documents/GitHub/OpenTSLMMLX}"
 OPENTSLM_SRC="${OPENTSLM_SRC:-$HOME/OpenTSLM/src}"
-OUT_DIR="${OUT_DIR:-$HOME/Documents/PocketTSLM/PocketTSLM/Supporting Files/OpenTSLM}"
+OUT_DIR="${OUT_DIR:-$(cd "$(dirname "$0")/.." && pwd)/Tests/UITests/TestApp/Supporting Files/OpenTSLM}"
 MAX_ROWS="${MAX_ROWS:-500}"
 
 cd "$OPENTSLMMLX"

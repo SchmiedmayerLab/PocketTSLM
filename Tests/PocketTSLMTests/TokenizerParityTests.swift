@@ -24,11 +24,10 @@ final class TokenizerParityTests: XCTestCase {
             return URL(fileURLWithPath: path)
         }
         return URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()  // OpenTSLMKitTests
+            .deletingLastPathComponent()  // PocketTSLMTests
             .deletingLastPathComponent()  // Tests
-            .deletingLastPathComponent()  // src-swift
             .deletingLastPathComponent()  // repository root
-            .appendingPathComponent("PocketTSLM/Supporting Files/LocalLLM")
+            .appendingPathComponent("Tests/UITests/TestApp/Supporting Files/LocalLLM")
     }()
 
     func testTokenizerParityWithPython() async throws {

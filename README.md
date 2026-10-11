@@ -16,8 +16,8 @@ The repository contains code only. Model weights and evaluation data are restore
 
 ## Repository layout
 
-- `PocketTSLM/`: the iOS app, with on-device inference, accuracy evaluations and benchmarks.
-- `src-swift/`: the `OpenTSLMKit` Swift package (encoder, projector, interleaver, serializer) and its parity tests.
+- `Tests/UITests/`: the iOS app (`UITests.xcodeproj`, target `TestApp`, shown as "PocketTSLM Demo"), with on-device inference, accuracy evaluations and benchmarks.
+- `Package.swift`, `Sources/` and `Tests/PocketTSLMTests/`: the Swift package (encoder, projector, interleaver, serializer) and its parity tests.
 - `benchmark-results/`: reference benchmark outputs from our run.
 - `scripts/`: asset restore and dataset export helpers.
 - `tools/`: the checkpoint converter.
@@ -29,7 +29,7 @@ The repository contains code only. Model weights and evaluation data are restore
 
 ## Model files and data
 
-The app reads its model files and evaluation data from `PocketTSLM/Supporting Files/LocalLLM/` and `PocketTSLM/Supporting Files/OpenTSLM/`, which git ignores. Restore them from a folder laid out like the paper artifact's `PocketTSLM/Supporting Files`:
+The app reads its model files and evaluation data from `Tests/UITests/TestApp/Supporting Files/LocalLLM/` and `.../OpenTSLM/`, which git ignores. Restore them from a folder laid out like the paper artifact's `PocketTSLM/Supporting Files`:
 
 ```bash
 scripts/fetch_assets.sh [--with-base-weights] <folder>
@@ -50,27 +50,26 @@ uv run tools/convert_checkpoint.py --input model_checkpoint.pt --out <folder> --
 
 ## Running the app
 
-1. Open `PocketTSLM.xcodeproj` and select the `PocketTSLM` scheme.
+1. Open `Tests/UITests/UITests.xcodeproj` and select the `TestApp` scheme.
 2. Choose your development team under *Signing & Capabilities*. Do not commit it.
 3. Unless you bundled the base weights, duplicate the scheme, untick *Shared*, and add the environment variable `HF_TOKEN` with a Hugging Face token whose account has accepted the Llama 3.2 license. Never commit the token.
 4. Run on the iPhone.
 
 The task sheet offers single-sample runs (*EEG sample*, *ECG sample*, *My Watch ECG*), accuracy evaluations on 20 test samples each (*EEG eval (20)*, *ECG eval (20)*), the context-economics benchmarks (*EEG bench*, *ECG bench*) and repeated runs (*EEG var (5×)*, *ECG var (5×)*). Evaluations and benchmarks write JSON reports to the app's Documents folder: `opentslm_sleep_eval.json` and `opentslm_ecg_eval.json` with every generated output, `opentslm_context_economics[_ecg].json`, and `opentslm_repeated_{eeg,ecg}.json`.
 
-The app resolves mlx-swift 0.21.3, mlx-swift-examples at revision `0c50f71e` and swift-transformers 0.1.20 (`PocketTSLM.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved`).
+The app resolves mlx-swift 0.21.3, mlx-swift-examples at revision `0c50f71e` and swift-transformers 0.1.20 (`Tests/UITests/UITests.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved`).
 
 ## Reproducing the paper
 
 **Parity tests (§3).** Component-level Python↔Swift parity (encoder, projector, fused pipeline, soft-prompt interleaver, RoPE, tokenizer, text serializer) against fixtures, no Python needed. Run them through Xcode, which compiles MLX's Metal shaders; `swift test` on the command line cannot:
 
 ```bash
-cd src-swift
 xcodebuild test -scheme OpenTSLMKit-Package -destination 'platform=macOS,arch=arm64,name=My Mac'
 ```
 
 Tests whose fixtures are missing are skipped:
-- the tokenizer test reads Meta's tokenizer from `PocketTSLM/Supporting Files/LocalLLM/` (restored by `scripts/fetch_assets.sh`) or from the folder in `POCKETTSLM_TOKENIZER_DIR`;
-- the encoder test needs `encoder_weights.safetensors` (9 MB) from the paper artifact in `src-swift/Tests/OpenTSLMKitTests/Fixtures/`;
+- the tokenizer test reads Meta's tokenizer from `Tests/UITests/TestApp/Supporting Files/LocalLLM/` (restored by `scripts/fetch_assets.sh`) or from the folder in `POCKETTSLM_TOKENIZER_DIR`;
+- the encoder test needs `encoder_weights.safetensors` (9 MB) from the paper artifact in `Tests/PocketTSLMTests/Fixtures/`;
 - the real-weight ECG tests need the fixtures that `generate_real_parity_fixtures.py` writes.
 
 Tolerances are max 1e-4 / mean 1e-5 (1e-3 for RoPE). In this snapshot the RoPE test's comparison with the default base frequency misses its bound slightly (1.02e-3). The greedy decode itself runs in the app (`OpenTSLMLLM`); the tests cover the pipeline that feeds it.

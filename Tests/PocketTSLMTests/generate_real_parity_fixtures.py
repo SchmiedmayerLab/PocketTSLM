@@ -9,7 +9,7 @@ assert their output matches, localizing where the port diverges.
 
 Run from the repo with a python that has mlx:
     POCKETTSLM_MLX_REFERENCE_SRC=<OpenTSLMMLX checkout>/src \
-        python3 src-swift/Tests/OpenTSLMKitTests/generate_real_parity_fixtures.py
+        python3 Tests/PocketTSLMTests/generate_real_parity_fixtures.py
 
 POCKETTSLM_OPENTSLM_ASSETS overrides the folder with the ECG checkpoint and sample; it defaults
 to the app's Supporting Files/OpenTSLM, which scripts/fetch_assets.sh fills.
@@ -27,8 +27,8 @@ sys.path.insert(0, MLX_IOS)
 from ts_encoder import TransformerCNNEncoder  # noqa: E402
 from ts_projector import MLPProjector  # noqa: E402
 
-REPO = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", ".."))
-BUNDLE = os.environ.get("POCKETTSLM_OPENTSLM_ASSETS", f"{REPO}/PocketTSLM/Supporting Files/OpenTSLM")
+REPO = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
+BUNDLE = os.environ.get("POCKETTSLM_OPENTSLM_ASSETS", f"{REPO}/Tests/UITests/TestApp/Supporting Files/OpenTSLM")
 SAMPLE = f"{BUNDLE}/ecg_qa_cot_test_0.json"
 FIXTURES = os.path.dirname(os.path.abspath(__file__)) + "/Fixtures"
 CAP = 1000  # in-distribution window where iOS="no" diverged from reference="yes"

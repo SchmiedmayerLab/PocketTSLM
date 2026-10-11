@@ -8,7 +8,7 @@
 #
 
 # Restores the model files and evaluation data that the app reads from
-# "PocketTSLM/Supporting Files/" and that this repository does not track.
+# "Tests/UITests/TestApp/Supporting Files/" and that this repository does not track.
 #
 # Usage: scripts/fetch_assets.sh [--with-base-weights] <source>
 #
@@ -37,7 +37,7 @@ fi
 source_dir="$1"
 
 repo_root="$(cd "$(dirname "$0")/.." && pwd)"
-destination="$repo_root/PocketTSLM/Supporting Files"
+destination="$repo_root/Tests/UITests/TestApp/Supporting Files"
 manifest="$(mktemp)"
 trap 'rm -f "$manifest"' EXIT
 
