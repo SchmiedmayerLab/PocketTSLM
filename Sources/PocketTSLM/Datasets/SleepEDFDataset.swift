@@ -71,6 +71,19 @@ public final class SleepEDFDataset {
         let idx = min(max(rowIndex, 0), rows.count - 1)
         return try convertRow(rows[idx])
     }
+
+    /// Reads the first `count` rows of a Sleep-EDF CoT export (columns `time_series`, `label`,
+    /// `rationale`), with no train/validation/test split.
+    public static func evaluationSamples(csvURL: URL, count: Int) throws -> [EvaluationSample] {
+        try readRows(from: csvURL, maxRows: max(count, 1)).prefix(count).map { row in
+            EvaluationSample(
+                input: TSLMInput(series: [TimeSeries(samples: try parseTimeSeries(row.timeSeries))]),
+                label: row.label,
+                rationale: row.rationale,
+                expectedAnswer: Evaluation.finalAnswer(in: row.rationale)
+            )
+        }
+    }
 }
 
 private extension SleepEDFDataset {

@@ -132,6 +132,67 @@ final class AppSampleTests: XCTestCase {
         }
     }
 
+    /// Writes the synthetic exports of `scripts/capture_app_samples.sh`, which the app's readers read there.
+    static func writeExports(to folder: URL) throws {
+        func number(_ value: Float) -> String {
+            String(format: "%.17g", Double(value))
+        }
+        var csv = "id,time_series,label,prompt,rationale\n"
+        for (index, row) in [(1500, UInt64(1), Float(2e-5), Float(-1e-6), "W", "The signal shows fast, low-amplitude activity. Answer: Wake"),
+                             (1600, 2, 5e-5, 3e-6, "N2", "Spindles and K-complexes appear throughout. Answer: Non-REM stage 2")].enumerated() {
+            let series = Synthetic.series(count: row.0, seed: row.1, scale: row.2, offset: row.3)
+            csv += "row\(index),\"[[\(series.map(number).joined(separator: ", "))]]\",\(row.4),,\"\(row.5)\"\n"
+        }
+        try csv.write(to: folder.appendingPathComponent("sleep.csv"), atomically: true, encoding: .utf8)
+
+        let waveforms = folder.appendingPathComponent("waveforms")
+        try FileManager.default.createDirectory(at: waveforms, withIntermediateDirectories: true)
+        for ecgID in [101, 202] {
+            let series = ECG.leadNames.indices.map { Synthetic.series(count: 1000, seed: UInt64(ecgID * 100 + $0), scale: 1.5, offset: 0) }
+            let text = ECG.leadNames.indices.map { lead in
+                "This is ECG Lead \(ECG.leadNames[lead]), it has mean \(String(format: "%.4f", Double(lead) * 0.0123 - 0.05)) "
+                    + "and std \(String(format: "%.4f", 0.1 + Double(lead) * 0.01)):"
+            }
+            let json = "{\"time_series\": [\(series.map { "[\($0.map(number).joined(separator: ", "))]" }.joined(separator: ", "))], "
+                + "\"time_series_text\": [\(text.map { "\"\($0)\"" }.joined(separator: ", "))]}"
+            try json.write(to: waveforms.appendingPathComponent("\(ecgID).json"), atomically: true, encoding: .utf8)
+        }
+        try """
+        question,answer,template_id,question_type,ecg_id,rationale,clinical_context
+        Does this ECG show sinus rhythm?,yes,5,single-verify,[101],"Regular rhythm with upright P waves. Answer: yes",A 63-year-old patient with palpitations.
+        What is the heart rhythm?,sinus rhythm,9,single-query,202,"Normal P waves precede each QRS complex. Answer: sinus rhythm",
+
+        """.write(to: folder.appendingPathComponent("ecg.csv"), atomically: true, encoding: .utf8)
+        try #"{"template_answers": {"5": ["yes", "no", "not sure"]}}"#
+            .write(to: folder.appendingPathComponent("templates.json"), atomically: true, encoding: .utf8)
+    }
+
+    func testReadersMatchTheApp() throws {
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        try Self.writeExports(to: folder)
+
+        let sleep = try SleepEDFDataset.evaluationSamples(csvURL: folder.appendingPathComponent("sleep.csv"), count: 2)
+        XCTAssertEqual(sleep.map(\.expectedAnswer), ["wake", "non-rem stage 2"])
+        for (index, sample) in sleep.enumerated() {
+            let prepared = try Self.checkpoint("sleep-edf").makeSample(sample.input, label: sample.label, answer: sample.rationale)
+            assertMatches(prepared, try Self.captured("sleep-\(index)"))
+        }
+
+        let ecg = try ECGQACoTDataset(
+            csvURL: folder.appendingPathComponent("ecg.csv"),
+            waveformsDirectory: folder.appendingPathComponent("waveforms"),
+            templateAnswersURL: folder.appendingPathComponent("templates.json")
+        )
+        for index in 0 ..< ecg.count {
+            let sample = try ecg.evaluationSample(at: index)
+            XCTAssertEqual(sample.expectedAnswer, ["yes", "sinus rhythm"][index])
+            let prepared = try Self.checkpoint("ecg-qa").makeSample(sample.input, label: sample.label, answer: sample.rationale)
+            assertMatches(prepared, try Self.captured("ecg-qa-\(index)"))
+        }
+    }
+
     func testMissingTemplateValuesThrow() throws {
         let input = TSLMInput(series: [TimeSeries(samples: [1, 2, 3])], context: ["question": "Is this normal?"])
         XCTAssertThrowsError(try Self.checkpoint("ecg-qa").makeSample(input)) { error in

@@ -114,6 +114,28 @@ public final class ECGQACoTDataset {
         )
     }
 
+    /// The row at `index` as an evaluation sample: the exported leads with the descriptions the
+    /// OpenTSLM loader wrote, and the row's values for the ECG-QA prompt's `{clinicalContext}`,
+    /// `{question}` and answer options.
+    public func evaluationSample(at index: Int) throws -> EvaluationSample {
+        precondition(index >= 0 && index < rows.count, "sample index out of range")
+        let row = rows[index]
+        let waveform = try loadWaveform(for: row.ecgId)
+        let series = zip(waveform.timeSeries, waveform.timeSeriesText).map { values, description in
+            TimeSeries(values: values, mean: 0, std: 0, description: description)
+        }
+        return EvaluationSample(
+            input: TSLMInput(
+                series: series,
+                context: ["clinicalContext": row.clinicalContext, "question": row.question],
+                answerOptions: templateAnswers[row.templateId] ?? []
+            ),
+            label: row.correctAnswer,
+            rationale: row.rationale,
+            expectedAnswer: row.correctAnswer.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        )
+    }
+
     private func loadWaveform(for ecgId: Int) throws -> WaveformEntry {
         let key = String(ecgId)
         if let cached = waveformCache[key] {
