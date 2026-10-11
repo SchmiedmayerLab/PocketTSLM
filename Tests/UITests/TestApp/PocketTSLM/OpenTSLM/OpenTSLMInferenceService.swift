@@ -836,83 +836,6 @@ class OpenTSLMInferenceService: DefaultInitializable, Module, EnvironmentAccessi
         return Bundle.main.url(forResource: bundledName, withExtension: fileExtension)
     }
 
-    private func resolveLocalModelDirectory() -> URL? {
-        let fileManager = FileManager.default
-
-        // Check for override path
-        if let overridePath = Constants.localModelSourcePathOverride,
-           let overrideURL = existingDirectoryURL(at: overridePath, fileManager: fileManager) {
-            return overrideURL
-        }
-
-        // Check bundled model directory
-        if let bundledLocalModelURL = Bundle.main.resourceURL {
-            let bundledDirectory = bundledLocalModelURL.appendingPathComponent(Constants.localModelBundleSubdirectory, isDirectory: true)
-            if fileManager.fileExists(atPath: bundledDirectory.path) {
-                return bundledDirectory
-            }
-
-            // Check if model files are directly in bundle root
-            let requiredModelFiles = ["config.json", "tokenizer.json", "model.safetensors"]
-            let bundledRootFiles = requiredModelFiles.allSatisfy { fileName in
-                fileManager.fileExists(atPath: bundledLocalModelURL.appendingPathComponent(fileName).path)
-            }
-
-            if bundledRootFiles {
-                return bundledLocalModelURL
-            }
-        }
-
-        // Fallback: detect a downloaded model snapshot from Hugging Face cache
-        let sanitizedRepoID = Constants.llmModelName.replacingOccurrences(of: "/", with: "--")
-        let hostSnapshotsPath = "\(Constants.hostHuggingFaceCacheRoot)/models--\(sanitizedRepoID)/snapshots"
-        let hostSnapshotsURL = URL(fileURLWithPath: hostSnapshotsPath, isDirectory: true)
-
-        if let hostSnapshot = newestSnapshotDirectory(in: hostSnapshotsURL, fileManager: fileManager) {
-            return hostSnapshot
-        }
-
-        let snapshotsPath = "~/.cache/huggingface/hub/models--\(sanitizedRepoID)/snapshots"
-        let snapshotsURL = URL(fileURLWithPath: NSString(string: snapshotsPath).expandingTildeInPath, isDirectory: true)
-        return newestSnapshotDirectory(in: snapshotsURL, fileManager: fileManager)
-    }
-
-    private func newestSnapshotDirectory(in snapshotsURL: URL, fileManager: FileManager) -> URL? {
-        guard fileManager.fileExists(atPath: snapshotsURL.path) else {
-            return nil
-        }
-
-        let directoryContents = try? fileManager.contentsOfDirectory(
-            at: snapshotsURL,
-            includingPropertiesForKeys: [.contentModificationDateKey],
-            options: [.skipsHiddenFiles]
-        )
-
-        return directoryContents?
-            .filter { url in
-                var isDirectory: ObjCBool = false
-                return fileManager.fileExists(atPath: url.path, isDirectory: &isDirectory) && isDirectory.boolValue
-            }
-            .sorted(by: { lhs, rhs in
-                let lhsDate = (try? lhs.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate) ?? .distantPast
-                let rhsDate = (try? rhs.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate) ?? .distantPast
-                return lhsDate > rhsDate
-            })
-            .first
-    }
-
-    private func existingDirectoryURL(at rawPath: String, fileManager: FileManager) -> URL? {
-        let expandedPath = NSString(string: rawPath).expandingTildeInPath
-        let url = URL(fileURLWithPath: expandedPath, isDirectory: true)
-        var isDirectory: ObjCBool = false
-
-        guard fileManager.fileExists(atPath: url.path, isDirectory: &isDirectory), isDirectory.boolValue else {
-            return nil
-        }
-
-        return url
-    }
-
     private func cappedSample(_ sample: OpenTSLMSPSample, limit: Int = Constants.openTSLMMaxTimeSeriesLength) -> OpenTSLMSPSample {
         let cap = limit
         guard cap > 0 else { return sample }
@@ -1168,14 +1091,6 @@ class OpenTSLMInferenceService: DefaultInitializable, Module, EnvironmentAccessi
         )
     }
 
-    private func loadECGSample() throws -> ECGSample {
-        if let url = resolveECGJSONURL() {
-            return try ECGSample.load(from: url)
-        }
-
-        return ECGSample.hardcoded(sampleLength: Constants.hardcodedECGSampleLength)
-    }
-
     private func resolveECGJSONURL() -> URL? {
         let overridePath = Constants.openTSLMECGJSONPath
         guard !overridePath.isEmpty else {
@@ -1280,19 +1195,6 @@ class OpenTSLMInferenceService: DefaultInitializable, Module, EnvironmentAccessi
         return (mean, max(sqrt(variance), 1e-6))
     }
 
-    private static func zNormalize(_ values: [Double]) -> [Double] {
-        guard !values.isEmpty else {
-            return []
-        }
-
-        let mean = values.reduce(0, +) / Double(values.count)
-        let variance = values.reduce(0) { partial, value in
-            let delta = value - mean
-            return partial + delta * delta
-        } / Double(values.count)
-        let standardDeviation = max(sqrt(variance), 1e-6)
-        return values.map { ($0 - mean) / standardDeviation }
-    }
 }
 
 private enum ECGSampleSource: String {
@@ -1329,66 +1231,4 @@ private struct ECGSample {
         return "classification=\(classificationText), symptoms_status=\(symptomsText), average_heart_rate=\(heartRateText)"
     }
 
-    static func hardcoded(sampleLength: Int = 1024, samplingFrequency: Double = 256) -> ECGSample {
-        let voltages: [Double] = (0 ..< sampleLength).map { index in
-            let t = Double(index) / samplingFrequency
-
-            let base = 0.025 * sin(2.0 * .pi * 1.2 * t)
-            let pWave = 0.010 * sin(2.0 * .pi * 4.0 * t)
-            let qrsPhase = t.truncatingRemainder(dividingBy: 0.86)
-            let qrs = qrsPhase < 0.018 ? 0.72 * exp(-pow((qrsPhase - 0.006) * 120.0, 2.0)) : 0.0
-            let tWave = 0.040 * exp(-pow((qrsPhase - 0.24) * 14.0, 2.0))
-            return base + pWave + qrs + tWave
-        }
-
-        return ECGSample(
-            source: .hardcoded,
-            samplingFrequency: samplingFrequency,
-            classification: "sinusRhythm_sample",
-            symptomsStatus: "notSet_sample",
-            averageHeartRate: 70.0,
-            voltages: voltages
-        )
-    }
-
-    static func load(from url: URL) throws -> ECGSample {
-        let data = try Data(contentsOf: url)
-        let decoded = try JSONSerialization.jsonObject(with: data)
-
-        guard let object = decoded as? [String: Any],
-              let voltages = object["voltages"] as? [Double],
-              !voltages.isEmpty
-        else {
-            throw NSError(
-                domain: "OpenTSLMInferenceService",
-                code: 6,
-                userInfo: [NSLocalizedDescriptionKey: "Unsupported ECG JSON format"]
-            )
-        }
-
-        let samplingFrequency = object["samplingFrequency"] as? Double
-            ?? object["sampling_frequency"] as? Double
-            ?? 256.0
-        let classification = object["classification"] as? String
-        let symptomsStatus = object["symptomsStatus"] as? String
-            ?? object["symptoms_status"] as? String
-        let averageHeartRate = object["averageHeartRate"] as? Double
-            ?? object["average_heart_rate"] as? Double
-
-        let source: ECGSampleSource
-        if object["source"] as? String == ECGSampleSource.healthkitJSON.rawValue {
-            source = .healthkitJSON
-        } else {
-            source = .jsonOverride
-        }
-
-        return ECGSample(
-            source: source,
-            samplingFrequency: samplingFrequency,
-            classification: classification,
-            symptomsStatus: symptomsStatus,
-            averageHeartRate: averageHeartRate,
-            voltages: voltages
-        )
-    }
 }
