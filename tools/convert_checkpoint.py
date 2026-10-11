@@ -25,6 +25,9 @@ Usage:
     uv run tools/convert_checkpoint.py --input model_checkpoint.pt --out <folder> --task ecg-qa \
         [--source-repo OpenTSLM/llama-3.2-1b-ecg-sp --source-revision <commit>]
 
+`--task` names a preset in `tools/tasks/`, which supplies the task's prompts, series format and
+generation length for config.json. The presets hold the paper app's prompts verbatim.
+
 The checkpoint is read with `torch.load(weights_only=True)`. Its PEFT config objects are
 restored into stand-in classes, so no code from the pickle runs and PEFT is not needed.
 
@@ -46,6 +49,7 @@ import torch
 from safetensors.numpy import load_file, save_file
 
 FORMAT = "pockettslm-checkpoint/1"
+TASKS = Path(__file__).resolve().parent / "tasks"
 
 # Base models with their pinned Hugging Face revision and the SHA-256 of `model.safetensors`.
 BASE_MODELS = {
@@ -229,7 +233,7 @@ def model_card(config: dict) -> str:
         f"| `projector.safetensors` | projector into the {base['hiddenSize']}-dimensional token embeddings |",
         f"| `lora.safetensors` | LoRA adapters, rank {lora['rank']} and alpha {lora['alpha']}, "
         f"on {', '.join(lora['keys'])} |",
-        "| `config.json` | what PocketTSLM needs to run the checkpoint |",
+        "| `config.json` | prompts, series format and model settings for PocketTSLM |",
         "",
         f"The base model is not included: PocketTSLM loads `{base['id']}`"
         + (f" at revision `{base['revision']}`" if "revision" in base else "") + " separately.",
@@ -248,11 +252,13 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--input", type=Path, required=True, help="OpenTSLM-SP model_checkpoint.pt")
     parser.add_argument("--out", type=Path, required=True, help="output folder")
-    parser.add_argument("--task", required=True, help='task name for config.json, for example "ecg-qa"')
+    presets = sorted(path.stem for path in TASKS.glob("*.json"))
+    parser.add_argument("--task", required=True, choices=presets, help="task preset in tools/tasks/")
     parser.add_argument("--source-repo", help="Hugging Face repo of the input, e.g. OpenTSLM/llama-3.2-1b-ecg-sp")
     parser.add_argument("--source-revision", help="commit of --source-repo that the input comes from")
     args = parser.parse_args()
 
+    task = json.loads((TASKS / f"{args.task}.json").read_text(encoding="utf-8"))
     checkpoint = load_checkpoint(args.input)
     if not checkpoint.get("lora_state") or "lora_config" not in checkpoint:
         parser.error("the checkpoint has no LoRA adapters or no PEFT config")
@@ -273,15 +279,21 @@ def main() -> None:
                     "embedDim": int(encoder["patch_embed.weight"].shape[0]),
                     "maxPatches": int(encoder["pos_embed"].shape[1])},
         "lora": lora_settings(peft_config, lora),
+        "series": task["series"],
+        "prompt": task["prompt"],
+        "generation": task["generation"],
         "source": {key: value for key, value in source.items() if value is not None},
     }
+    capacity = config["encoder"]["maxPatches"] * config["encoder"]["patchSize"]
+    if config["series"]["maxLength"] > capacity:
+        parser.error(f"series of {config['series']['maxLength']} samples exceed the encoder's {capacity}")
 
     args.out.mkdir(parents=True, exist_ok=True)
     save(encoder, args.out / "encoder.safetensors")
     save(projector, args.out / "projector.safetensors")
     save(lora, args.out / "lora.safetensors")
-    (args.out / "config.json").write_text(json.dumps(config, indent=2) + "\n")
-    (args.out / "README.md").write_text(model_card(config))
+    (args.out / "config.json").write_text(json.dumps(config, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    (args.out / "README.md").write_text(model_card(config), encoding="utf-8")
     print(f"Wrote {args.out}: {len(encoder)} encoder, {len(projector)} projector and {len(lora)} LoRA tensors")
 
 

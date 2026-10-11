@@ -8,6 +8,7 @@ path = [
     "PocketTSLMTestPlan.xctestplan",
     "PocketTSLMStudy/Supporting Files/**",
     "scripts/assets.sha256",
+    "tools/tasks/**",
 ]
 SPDX-FileCopyrightText = "2026 Schmiedmayer Lab and the project authors (see CONTRIBUTORS.md)"
 SPDX-License-Identifier = "MIT"

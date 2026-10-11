@@ -1,0 +1,34 @@
+{
+  "series": {
+    "normalization": "z-score",
+    "minStd": 1e-06,
+    "maxLength": 1000,
+    "samplingRate": 100,
+    "names": [
+      "I",
+      "II",
+      "III",
+      "aVR",
+      "aVL",
+      "aVF",
+      "V1",
+      "V2",
+      "V3",
+      "V4",
+      "V5",
+      "V6"
+    ],
+    "description": "This is ECG Lead {name}, it has mean {mean} and std {std}:",
+    "statFormat": "%.4f"
+  },
+  "prompt": {
+    "pre": "You are an expert cardiologist analyzing an ECG (electrocardiogram). \n\nClinical Context: {clinicalContext}\n\nYour task is to examine the ECG signal and answer the following medical question:\n\nQuestion: {question}\n\nInstructions:\n- Begin by analyzing the time series without assuming a specific answer.\n- Think step-by-step about what the observed patterns suggest regarding the cardiac condition.\n- Write your rationale as a single, natural paragraph — do not use bullet points, numbered steps, or section headings.\n- Do **not** mention any final answer until the very end.\n- Consider the ECG morphology, intervals, and any abnormalities that relate to the question.",
+    "post": "Based on your analysis of the ECG data, select your answer from the following options:\n{answerOptions}\n\n- Make sure that your last word is the answer. You MUST end your response with \"Answer: \"",
+    "postWithoutOptions": "Based on your analysis of the ECG data, provide your answer.\nMake sure that your last word is the answer. You MUST end your response with \"Answer: \"",
+    "answerOptionSeparator": ", ",
+    "answerCue": "Answer:"
+  },
+  "generation": {
+    "maxTokens": 400
+  }
+}
