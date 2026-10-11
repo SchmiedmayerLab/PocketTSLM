@@ -1,0 +1,40 @@
+#
+# This source file is part of the PocketTSLM open-source project
+#
+# SPDX-FileCopyrightText: 2025 Schmiedmayer Lab and the project authors (see CONTRIBUTORS.md)
+#
+# SPDX-License-Identifier: MIT
+#
+
+name: Build and Test
+
+on:
+  pull_request:
+  workflow_dispatch:
+  workflow_call:
+
+concurrency:
+  group: Build-and-Test-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  buildandtest:
+    name: Build and Test
+    uses: SchmiedmayerLab/.github/.github/workflows/xcodebuild-or-fastlane.yml@v0.5
+    permissions:
+      contents: read
+    with:
+      artifactname: PocketTSLMStudy.xcresult
+      runsonlabels: '["macOS", "self-hosted"]'
+      fastlanelane: test
+      customcommand: "fastlane test"
+  uploadcoveragereport:
+    name: Upload Coverage Report
+    needs: buildandtest
+    uses: SchmiedmayerLab/.github/.github/workflows/coverage.yml@v0.5
+    permissions:
+      contents: read
+    with:
+      coveragereports: PocketTSLMStudy.xcresult
+    secrets:
+      token: ${{ secrets.CODECOV_TOKEN }}

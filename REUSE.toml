@@ -1,0 +1,13 @@
+version = 1
+
+[[annotations]]
+path = [
+    "PocketTSLM.xcodeproj/**",
+    "PocketTSLM/Supporting Files/**",
+    "PocketTSLM.xctestplan",
+    "PocketTSLMTestPlan.xctestplan",
+    "PocketTSLMStudy/Supporting Files/**",
+    "scripts/assets.sha256",
+]
+SPDX-FileCopyrightText = "2026 Schmiedmayer Lab and the project authors (see CONTRIBUTORS.md)"
+SPDX-License-Identifier = "MIT"

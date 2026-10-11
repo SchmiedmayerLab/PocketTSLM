@@ -1,0 +1,159 @@
+{
+  "contextWindow" : 8192,
+  "loraApplied" : true,
+  "_note" : "EEG/sleep, raw CSV row 0 (parity-verified vs mlx-python). Cost metrics are sample-independent; generation is illustrative (truncated lengths can be OOD, e.g. L=250 soft-prompt degenerates; text arm emits answer-format boilerplate).",
+  "rows" : [
+    {
+      "positionCompression" : 12,
+      "seriesLength" : 100,
+      "softPrompt" : {
+        "decodeTokensPerSecond" : 11.796426821909149,
+        "didOOM" : false,
+        "encoding" : "soft_prompt",
+        "generatedTokens" : 80,
+        "outputText" : "The time series data presented shows a pattern characteristic of certain sleep stages, distinguished by specific EEG features. The signal displays a relatively consistent amplitude with some fluctuations, but it lacks the high-frequency, low-amplitude characteristics typically associated with wakefulness. Instead, the presence of distinct fluctuations and variations in amplitude suggests the occurrence of sleep spindles, which are indicative of a particular sleep stage. These sp",
+        "peakMemoryBytes" : 3780835620,
+        "prefillSeconds" : 0.640175458,
+        "promptPositions" : 239,
+        "seriesLength" : 100,
+        "timeSeriesPositions" : 25,
+        "totalSeconds" : 7.337118625
+      },
+      "textSerialized" : {
+        "decodeTokensPerSecond" : 11.863989106919087,
+        "didOOM" : false,
+        "encoding" : "text_serialized",
+        "generatedTokens" : 15,
+        "outputText" : "1st, 2nd, 3rd, etc.\"",
+        "peakMemoryBytes" : 4070139440,
+        "prefillSeconds" : 1.050952875,
+        "promptPositions" : 514,
+        "seriesLength" : 100,
+        "timeSeriesPositions" : 300,
+        "totalSeconds" : 2.230994417
+      }
+    },
+    {
+      "positionCompression" : 11.904761904761905,
+      "seriesLength" : 250,
+      "softPrompt" : {
+        "decodeTokensPerSecond" : 11.878707049193967,
+        "didOOM" : false,
+        "encoding" : "soft_prompt",
+        "generatedTokens" : 80,
+        "outputText" : "1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.",
+        "peakMemoryBytes" : 3842385444,
+        "prefillSeconds" : 0.56729575,
+        "promptPositions" : 277,
+        "seriesLength" : 250,
+        "timeSeriesPositions" : 63,
+        "totalSeconds" : 7.217851208
+      },
+      "textSerialized" : {
+        "decodeTokensPerSecond" : 11.85725782829928,
+        "didOOM" : false,
+        "encoding" : "text_serialized",
+        "generatedTokens" : 26,
+        "outputText" : " [number]\". For example, if your answer is 1, then your response should be: Answer: 1.",
+        "peakMemoryBytes" : 4072285744,
+        "prefillSeconds" : 1.878740584,
+        "promptPositions" : 964,
+        "seriesLength" : 250,
+        "timeSeriesPositions" : 750,
+        "totalSeconds" : 3.987153875
+      }
+    },
+    {
+      "positionCompression" : 12,
+      "seriesLength" : 500,
+      "softPrompt" : {
+        "decodeTokensPerSecond" : 11.808140805054004,
+        "didOOM" : false,
+        "encoding" : "soft_prompt",
+        "generatedTokens" : 80,
+        "outputText" : "The time-series data presented exhibits characteristics that are indicative of a particular sleep stage. The signal shows frequent fluctuations with relatively high frequency and low amplitude. These patterns suggest a level of brain activity that is more consistent with a state of alertness or light sleep. The presence of rapid and varied changes in the signal amplitude and frequency typically aligns with a more active brain state, as opposed to the slower",
+        "peakMemoryBytes" : 3900974636,
+        "prefillSeconds" : 0.675543292,
+        "promptPositions" : 339,
+        "seriesLength" : 500,
+        "timeSeriesPositions" : 125,
+        "totalSeconds" : 7.365842917
+      },
+      "textSerialized" : {
+        "decodeTokensPerSecond" : 10.767130621289837,
+        "didOOM" : false,
+        "encoding" : "text_serialized",
+        "generatedTokens" : 27,
+        "outputText" : " [number]\". For example, if your answer is 1, write \"Answer: 1\" and then your answer.",
+        "peakMemoryBytes" : 4218447416,
+        "prefillSeconds" : 3.563227875,
+        "promptPositions" : 1714,
+        "seriesLength" : 500,
+        "timeSeriesPositions" : 1500,
+        "totalSeconds" : 5.9779845
+      }
+    },
+    {
+      "positionCompression" : 12,
+      "seriesLength" : 1000,
+      "softPrompt" : {
+        "decodeTokensPerSecond" : 10.932853195524006,
+        "didOOM" : false,
+        "encoding" : "soft_prompt",
+        "generatedTokens" : 80,
+        "outputText" : "The time-series data presented exhibits characteristics that are indicative of a particular sleep stage. The signal shows frequent fluctuations with relatively high frequency and low amplitude. These patterns suggest a level of brain activity that is more consistent with a state of alertness or light sleep. The presence of rapid and varied changes in the signal amplitude and frequency typically aligns with a more active brain state, as opposed to the slower",
+        "peakMemoryBytes" : 4024526388,
+        "prefillSeconds" : 0.996461208,
+        "promptPositions" : 464,
+        "seriesLength" : 1000,
+        "timeSeriesPositions" : 250,
+        "totalSeconds" : 8.222388291
+      },
+      "textSerialized" : {
+        "decodeTokensPerSecond" : 7.2968373664121895,
+        "didOOM" : false,
+        "encoding" : "text_serialized",
+        "generatedTokens" : 27,
+        "outputText" : " [number]\". For example, if your answer is 1, write \"Answer: 1\" and then your answer.",
+        "peakMemoryBytes" : 4437943864,
+        "prefillSeconds" : 10.626397333,
+        "promptPositions" : 3214,
+        "seriesLength" : 1000,
+        "timeSeriesPositions" : 3000,
+        "totalSeconds" : 14.189584875
+      }
+    },
+    {
+      "positionCompression" : 12,
+      "seriesLength" : 1500,
+      "softPrompt" : {
+        "decodeTokensPerSecond" : 7.2868336831619045,
+        "didOOM" : false,
+        "encoding" : "soft_prompt",
+        "generatedTokens" : 80,
+        "outputText" : "The time-series data presented exhibits characteristics that are indicative of a particular sleep stage. The signal shows frequent fluctuations with relatively high frequency and low amplitude. These patterns suggest a level of brain activity that is more consistent with a state of alertness or light sleep. The presence of rapid and varied changes in the signal amplitude and frequency typically aligns with a more active brain state, as opposed to the slower",
+        "peakMemoryBytes" : 4073317936,
+        "prefillSeconds" : 2.78745125,
+        "promptPositions" : 589,
+        "seriesLength" : 1500,
+        "timeSeriesPositions" : 375,
+        "totalSeconds" : 13.628922791
+      },
+      "textSerialized" : {
+        "decodeTokensPerSecond" : 0,
+        "didOOM" : true,
+        "encoding" : "text_serialized",
+        "generatedTokens" : 0,
+        "outputText" : "[skipped: 4714 positions exceed on-device budget 4300 — would risk an OOM termination]",
+        "peakMemoryBytes" : 0,
+        "prefillSeconds" : 0,
+        "promptPositions" : 4714,
+        "seriesLength" : 1500,
+        "timeSeriesPositions" : 4500,
+        "totalSeconds" : 0
+      }
+    }
+  ],
+  "softPromptMaxSeriesLength" : 31912,
+  "textMaxSeriesLength" : 2659
+}
