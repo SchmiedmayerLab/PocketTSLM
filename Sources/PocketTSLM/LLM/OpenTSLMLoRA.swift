@@ -25,26 +25,43 @@ public enum OpenTSLMLoRA {
     /// Allows task switching (ECG ↔ sleep) by re-loading adapter weights without
     /// repeating the one-time Linear→LoRALinear layer conversion.
     private static var appliedModelCheckpoints: [ObjectIdentifier: URL] = [:]
-    private static let loraRank = 16
-    private static let loraScale: Float = 32.0 / 16.0
-    private static let adapterProjectionKeys: Set<String> = [
-        "q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj",
-    ]
+
+    /// Rank, scale and target projections of the adapters. The defaults are OpenTSLM-SP's:
+    /// rank 16, alpha 32 (scale 2), all seven projections.
+    public struct Shape: Sendable {
+        public var rank: Int
+        public var scale: Float
+        public var keys: Set<String>
+
+        public init(
+            rank: Int = 16,
+            scale: Float = 2,
+            keys: Set<String> = ["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"]
+        ) {
+            self.rank = rank
+            self.scale = scale
+            self.keys = keys
+        }
+    }
 
     /// Makes `checkpointURL` the active adapter of the container's ``EmbeddingLlamaModel``.
     ///
     /// The first call converts the projections to `LoRALinear` once; a later call with another
     /// checkpoint only swaps the adapter weights, so one loaded base model serves several tasks.
-    public static func applyIfNeeded(to container: ModelContainer, checkpointURL: URL) async throws {
+    public static func applyIfNeeded(
+        to container: ModelContainer,
+        checkpointURL: URL,
+        shape: Shape = Shape()
+    ) async throws {
         try await container.perform { context in
             guard let llama = context.model as? EmbeddingLlamaModel else {
                 return
             }
-            try applyIfNeeded(to: llama, checkpointURL: checkpointURL)
+            try applyIfNeeded(to: llama, checkpointURL: checkpointURL, shape: shape)
         }
     }
 
-    static func applyIfNeeded(to llama: EmbeddingLlamaModel, checkpointURL: URL) throws {
+    static func applyIfNeeded(to llama: EmbeddingLlamaModel, checkpointURL: URL, shape: Shape = Shape()) throws {
         let modelID = ObjectIdentifier(llama)
 
         if appliedModelCheckpoints[modelID] == checkpointURL {
@@ -52,7 +69,7 @@ public enum OpenTSLMLoRA {
         }
 
         if appliedModelCheckpoints[modelID] == nil {
-            convertOpenTSLMLoRALayers(on: llama)
+            convertOpenTSLMLoRALayers(on: llama, shape: shape)
         }
 
         let rawWeights = try loadArrays(url: checkpointURL)
@@ -70,9 +87,9 @@ public enum OpenTSLMLoRA {
     }
 
     /// Convert every attention/MLP linear in all transformer layers (matches ``linear_to_lora_layers`` in OpenTSLMMLX).
-    private static func convertOpenTSLMLoRALayers(on llama: EmbeddingLlamaModel) {
+    private static func convertOpenTSLMLoRALayers(on llama: EmbeddingLlamaModel, shape: Shape) {
         llama.freeze()
-        let layers = openTSMLLoRALinearLayers(on: llama)
+        let layers = openTSMLLoRALinearLayers(on: llama, keys: shape.keys)
         for (layer, keys) in layers {
             var update = ModuleChildren()
             let children = layer.children()
@@ -85,8 +102,8 @@ public enum OpenTSLMLoRA {
                     LoRALinear(
                         inputDimensions,
                         outputDimensions,
-                        rank: loraRank,
-                        scale: loraScale,
+                        rank: shape.rank,
+                        scale: shape.scale,
                         linear: linear
                     )
                 )
@@ -97,7 +114,7 @@ public enum OpenTSLMLoRA {
         }
     }
 
-    private static func openTSMLLoRALinearLayers(on llama: EmbeddingLlamaModel) -> LoRALinearLayers {
+    private static func openTSMLLoRALinearLayers(on llama: EmbeddingLlamaModel, keys: Set<String>) -> LoRALinearLayers {
         var groups: [String: [String]] = [:]
         for (path, module) in llama.namedModules() {
             guard module is Linear, !path.contains("lora_") else {
@@ -105,7 +122,7 @@ public enum OpenTSLMLoRA {
             }
             guard path.hasPrefix("model.layers."),
                   let suffix = path.split(separator: ".").last.map(String.init),
-                  adapterProjectionKeys.contains(suffix)
+                  keys.contains(suffix)
             else {
                 continue
             }
