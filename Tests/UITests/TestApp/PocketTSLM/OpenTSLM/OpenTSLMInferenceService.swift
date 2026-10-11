@@ -369,49 +369,7 @@ class OpenTSLMInferenceService: DefaultInitializable, Module, EnvironmentAccessi
         return lines.joined(separator: "\n")
     }
 
-    // MARK: - Sleep accuracy eval
-
-    /// One scored sample of the pinned Sleep-EDF test-split eval.
-    struct SleepEvalRow: Encodable {
-        let index: Int
-        let label: String
-        let groundTruth: String?
-        let predicted: String?
-        let correct: Bool
-        let seconds: Double
-        let output: String
-    }
-
-    /// Full eval result, written to the app's Documents directory.
-    struct SleepEvalReport: Encodable {
-        let sampleCount: Int
-        let maxNewTokens: Int
-        let seriesLength: Int
-        let loraApplied: Bool
-        let parsed: Int
-        let correct: Int
-        let accuracy: Double
-        let rows: [SleepEvalRow]
-    }
-
-    /// Extracts the final `Answer: <label>` from generated text, normalized for comparison
-    /// (special tokens stripped, whitespace collapsed, trailing period dropped, lowercased).
-    static func finalAnswer(in text: String) -> String? {
-        // NB: the pipes must be escaped — an unescaped `<|...|>` is regex *alternation*,
-        // whose `[^|]*` branch matches the empty string and loops forever.
-        let cleaned = text.replacingOccurrences(
-            of: "<\\|[^|]*\\|>", with: "", options: .regularExpression)
-        guard let marker = cleaned.range(of: "Answer:", options: [.backwards, .caseInsensitive]) else {
-            return nil
-        }
-        let tail = cleaned[marker.upperBound...]
-        let line = tail.prefix { $0 != "\n" && $0 != "." }
-        let collapsed = line
-            .split(whereSeparator: { $0.isWhitespace })
-            .joined(separator: " ")
-            .lowercased()
-        return collapsed.isEmpty ? nil : collapsed
-    }
+    // MARK: - Accuracy evals
 
     /// Runs the on-device accuracy eval over the pinned 20-row Sleep-EDF test-split export.
     /// Row `i` here is the same sample as index `i` in the Python reference's test split, so
@@ -423,101 +381,20 @@ class OpenTSLMInferenceService: DefaultInitializable, Module, EnvironmentAccessi
         llmRunner: LLMRunner,
         llmSession: LLMLocalSession?
     ) async throws -> String {
-        guard let llmSession else {
-            throw NSError(domain: "OpenTSLMInferenceService", code: 6,
-                          userInfo: [NSLocalizedDescriptionKey: "An LLM session is required to run the eval."])
+        let model = try await bundledModel(BundledAssets.sleepCheckpoint, on: llmSession)
+        let samples = try SleepEDFDataset.evaluationSamples(
+            csvURL: BundledAssets.evaluationFile("sleep_cot_test20.csv"),
+            count: sampleCount
+        )
+        let report = try await Evaluation.run(model, on: samples, maxTokens: maxTokens) { row in
+            self.logRow(row, of: samples.count, eval: "sleep")
         }
-        guard let csvURL = resolveAssetURL(
-            overridePath: Constants.openTSLMSleepCSVPath,
-            bundledName: Constants.openTSLMSleepEvalCSVName,
-            fileExtension: "csv"
-        ) else {
-            throw NSError(domain: "OpenTSLMInferenceService", code: 1,
-                          userInfo: [NSLocalizedDescriptionKey: "Missing \(Constants.openTSLMSleepEvalCSVName).csv in bundle/OpenTSLM"])
-        }
-        guard let encoderURL = resolveAssetURL(
-            overridePath: Constants.openTSLMEncoderCheckpointPath,
-            bundledName: Constants.openTSLMEncoderCheckpointName,
-            fileExtension: "safetensors"
-        ), let projectorURL = resolveAssetURL(
-            overridePath: Constants.openTSLMProjectorCheckpointPath,
-            bundledName: Constants.openTSLMProjectorCheckpointName,
-            fileExtension: "safetensors"
-        ) else {
-            throw NSError(domain: "OpenTSLMInferenceService", code: 2,
-                          userInfo: [NSLocalizedDescriptionKey: "Missing sleep encoder/projector checkpoint"])
-        }
-
-        // Load the pipeline and apply the LoRA once, then reuse across all samples.
-        let pipeline = OpenTSLMSPPipeline(hiddenSize: 2048)
-        try pipeline.loadWeights(encoderURL: encoderURL, projectorURL: projectorURL)
-        let loraApplied = await applyLoRAIfAvailable(on: llmSession)
-        GPU.clearCache()
-
-        let openTSLMLLM = OpenTSLMLLM(llmRunner: llmRunner, session: llmSession)
-        var rows: [SleepEvalRow] = []
-        var correct = 0
-        var parsed = 0
-        var seriesLength = 0
-
-        for index in 0 ..< max(sampleCount, 0) {
-            let sample = cappedSample(
-                try SleepEDFDataset.rawSample(csvURL: csvURL, rowIndex: index),
-                limit: Constants.openTSLMSleepMaxTimeSeriesLength
-            )
-            seriesLength = sample.timeSeries.first?.count ?? 0
-            let projected = pipeline.projectSample(sample)
-            GPU.clearCache()
-
-            let start = DispatchTime.now()
-            let output = try await openTSLMLLM.generate(
-                prePrompt: sample.prePrompt,
-                timeSeriesText: sample.timeSeriesText,
-                timeSeriesEmbeddings: projected,
-                postPrompt: sample.postPrompt,
-                maxTokens: maxTokens
-            )
-            let seconds = Double(DispatchTime.now().uptimeNanoseconds - start.uptimeNanoseconds) / 1_000_000_000
-            GPU.clearCache()
-
-            let groundTruth = Self.finalAnswer(in: sample.answer)
-            let predicted = Self.finalAnswer(in: output)
-            let isCorrect = predicted != nil && groundTruth != nil && predicted == groundTruth
-            if predicted != nil { parsed += 1 }
-            if isCorrect { correct += 1 }
-
-            rows.append(SleepEvalRow(
-                index: index, label: sample.label, groundTruth: groundTruth,
-                predicted: predicted, correct: isCorrect,
-                seconds: (seconds * 100).rounded() / 100, output: output))
-            logger.info("sleep eval [\(index + 1, privacy: .public)/\(sampleCount, privacy: .public)] gt=\(groundTruth ?? "nil", privacy: .public) pred=\(predicted ?? "nil", privacy: .public) \(isCorrect ? "OK" : "X", privacy: .public)")
-        }
-
-        let total = max(rows.count, 1)
-        let report = SleepEvalReport(
-            sampleCount: rows.count, maxNewTokens: maxTokens, seriesLength: seriesLength,
-            loraApplied: loraApplied, parsed: parsed, correct: correct,
-            accuracy: (Double(correct) / Double(total) * 10_000).rounded() / 10_000, rows: rows)
-
-        let encoder = JSONEncoder()
-        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
-        if let json = try? encoder.encode(report),
-           let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first {
-            let url = docs.appendingPathComponent("opentslm_sleep_eval.json")
-            try? json.write(to: url)
-            logger.info("sleep eval: wrote \(url.path, privacy: .public)")
-        }
-
-        var lines = ["Sleep-EDF accuracy eval (pinned test-split rows 0..<\(rows.count), L=\(seriesLength), greedy, max \(maxTokens) new tokens)",
-                     "LoRA applied: \(loraApplied ? "yes" : "no")", ""]
-        for row in rows {
-            let gt = (row.groundTruth ?? "nil").padding(toLength: 16, withPad: " ", startingAt: 0)
-            let pred = (row.predicted ?? "nil").padding(toLength: 16, withPad: " ", startingAt: 0)
-            lines.append("\(row.index)  \(gt) -> \(pred) \(row.correct ? "OK" : "X")")
-        }
-        lines.append("")
-        lines.append("accuracy: \(correct)/\(rows.count)   parsed: \(parsed)/\(rows.count)")
-        return lines.joined(separator: "\n")
+        writeToDocuments(report, name: "opentslm_sleep_eval.json")
+        return summary(
+            of: report,
+            title: "Sleep-EDF accuracy eval (pinned test-split rows 0..<\(report.sampleCount), L=\(report.seriesLength), greedy, max \(maxTokens) new tokens)",
+            columnWidth: 16
+        )
     }
 
     /// ECG variant of the accuracy eval: iterates the bundled ECG-QA CoT test rows, scores the
@@ -530,94 +407,43 @@ class OpenTSLMInferenceService: DefaultInitializable, Module, EnvironmentAccessi
         llmRunner: LLMRunner,
         llmSession: LLMLocalSession?
     ) async throws -> String {
-        guard let llmSession else {
-            throw NSError(domain: "OpenTSLMInferenceService", code: 6,
-                          userInfo: [NSLocalizedDescriptionKey: "An LLM session is required to run the eval."])
+        let model = try await bundledModel(BundledAssets.ecgCheckpoint, on: llmSession)
+        let dataset = try BundledAssets.ecgQADataset()
+        let samples = try (0 ..< min(sampleCount, dataset.count)).map(dataset.evaluationSample(at:))
+        let report = try await Evaluation.run(model, on: samples, maxTokens: maxTokens) { row in
+            self.logRow(row, of: samples.count, eval: "ecg")
         }
-        guard let encoderURL = resolveAssetURL(
-            overridePath: Constants.openTSLMEncoderCheckpointPath,
-            bundledName: Constants.openTSLMECGEncoderCheckpointName,
-            fileExtension: "safetensors"
-        ), let projectorURL = resolveAssetURL(
-            overridePath: Constants.openTSLMProjectorCheckpointPath,
-            bundledName: Constants.openTSLMECGProjectorCheckpointName,
-            fileExtension: "safetensors"
-        ) else {
-            throw NSError(domain: "OpenTSLMInferenceService", code: 2,
-                          userInfo: [NSLocalizedDescriptionKey: "Missing ECG encoder/projector checkpoint"])
+        writeToDocuments(report, name: "opentslm_ecg_eval.json")
+        return summary(
+            of: report,
+            title: "ECG-QA accuracy eval (bundled test rows 0..<\(report.sampleCount), L=\(report.seriesLength), greedy, max \(maxTokens) new tokens)",
+            columnWidth: 22
+        )
+    }
+
+    private func logRow(_ row: Evaluation.Row, of count: Int, eval: String) {
+        logger.info("\(eval, privacy: .public) eval [\(row.index + 1, privacy: .public)/\(count, privacy: .public)] gt=\(row.groundTruth ?? "nil", privacy: .public) pred=\(row.predicted ?? "nil", privacy: .public) \(row.correct ? "OK" : "X", privacy: .public)")
+    }
+
+    private func writeToDocuments(_ report: Evaluation.Report, name: String) {
+        guard let json = try? report.json(),
+              let documents = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first else {
+            return
         }
+        let url = documents.appendingPathComponent(name)
+        try? json.write(to: url)
+        logger.info("eval: wrote \(url.path, privacy: .public)")
+    }
 
-        let pipeline = OpenTSLMSPPipeline(hiddenSize: 2048)
-        try pipeline.loadWeights(encoderURL: encoderURL, projectorURL: projectorURL)
-        let loraApplied = await applyLoRAIfAvailable(on: llmSession, checkpointName: Constants.openTSLMECGLoRACheckpointName)
-        GPU.clearCache()
-
-        let openTSLMLLM = OpenTSLMLLM(llmRunner: llmRunner, session: llmSession)
-        var rows: [SleepEvalRow] = []
-        var correct = 0
-        var parsed = 0
-        var seriesLength = 0
-
-        for index in 0 ..< max(sampleCount, 0) {
-            let loaded = try loadECGQACoTSample(split: .test, sampleIndex: index)
-            guard loaded.metadata.loader != "formatted_json" else {
-                throw NSError(domain: "OpenTSLMInferenceService", code: 16, userInfo: [NSLocalizedDescriptionKey:
-                    "ECG eval fell back to the single legacy JSON sample — the bundled ECG-QA CSV/waveforms were not found, so every row would be identical."])
-            }
-            let sample = cappedSample(loaded.sample)
-            seriesLength = sample.timeSeries.first?.count ?? 0
-            let projected = pipeline.projectSample(sample)
-            GPU.clearCache()
-
-            let start = DispatchTime.now()
-            let output = try await openTSLMLLM.generate(
-                prePrompt: sample.prePrompt,
-                timeSeriesText: sample.timeSeriesText,
-                timeSeriesEmbeddings: projected,
-                postPrompt: sample.postPrompt,
-                maxTokens: maxTokens
-            )
-            let seconds = Double(DispatchTime.now().uptimeNanoseconds - start.uptimeNanoseconds) / 1_000_000_000
-            GPU.clearCache()
-
-            // ECG ground truth is the row's `correct_answer` (sample.label), not a rationale tail.
-            let groundTruth = sample.label.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-            let predicted = Self.finalAnswer(in: output)
-            let isCorrect = predicted != nil && predicted == groundTruth
-            if predicted != nil { parsed += 1 }
-            if isCorrect { correct += 1 }
-
-            rows.append(SleepEvalRow(
-                index: index, label: sample.label, groundTruth: groundTruth,
-                predicted: predicted, correct: isCorrect,
-                seconds: (seconds * 100).rounded() / 100, output: output))
-            logger.info("ecg eval [\(index + 1, privacy: .public)/\(sampleCount, privacy: .public)] gt=\(groundTruth, privacy: .public) pred=\(predicted ?? "nil", privacy: .public) \(isCorrect ? "OK" : "X", privacy: .public)")
-        }
-
-        let total = max(rows.count, 1)
-        let report = SleepEvalReport(
-            sampleCount: rows.count, maxNewTokens: maxTokens, seriesLength: seriesLength,
-            loraApplied: loraApplied, parsed: parsed, correct: correct,
-            accuracy: (Double(correct) / Double(total) * 10_000).rounded() / 10_000, rows: rows)
-
-        let encoder = JSONEncoder()
-        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
-        if let json = try? encoder.encode(report),
-           let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first {
-            let url = docs.appendingPathComponent("opentslm_ecg_eval.json")
-            try? json.write(to: url)
-            logger.info("ecg eval: wrote \(url.path, privacy: .public)")
-        }
-
-        var lines = ["ECG-QA accuracy eval (bundled test rows 0..<\(rows.count), L=\(seriesLength), greedy, max \(maxTokens) new tokens)",
-                     "LoRA applied: \(loraApplied ? "yes" : "no")", ""]
-        for row in rows {
-            let gt = (row.groundTruth ?? "nil").padding(toLength: 22, withPad: " ", startingAt: 0)
-            let pred = (row.predicted ?? "nil").padding(toLength: 22, withPad: " ", startingAt: 0)
-            lines.append("\(row.index)  \(gt) -> \(pred) \(row.correct ? "OK" : "X")")
+    private func summary(of report: Evaluation.Report, title: String, columnWidth: Int) -> String {
+        var lines = [title, "LoRA applied: \(report.loraApplied ? "yes" : "no")", ""]
+        for row in report.rows {
+            let groundTruth = (row.groundTruth ?? "nil").padding(toLength: columnWidth, withPad: " ", startingAt: 0)
+            let predicted = (row.predicted ?? "nil").padding(toLength: columnWidth, withPad: " ", startingAt: 0)
+            lines.append("\(row.index)  \(groundTruth) -> \(predicted) \(row.correct ? "OK" : "X")")
         }
         lines.append("")
-        lines.append("accuracy: \(correct)/\(rows.count)   parsed: \(parsed)/\(rows.count)")
+        lines.append("accuracy: \(report.correct)/\(report.rows.count)   parsed: \(report.parsed)/\(report.rows.count)")
         return lines.joined(separator: "\n")
     }
 
@@ -764,6 +590,46 @@ class OpenTSLMInferenceService: DefaultInitializable, Module, EnvironmentAccessi
         }
 
         return report.formattedSummary(split: "ecg-\(split.rawValue)", sampleIndex: sampleIndex)
+    }
+
+    // MARK: - Bundled models and data
+
+    /// The checkpoint folders and evaluation data the app bundles; `scripts/fetch_assets.sh` restores them.
+    private enum BundledAssets {
+        static let sleepCheckpoint = "llama-3.2-1b-sleep-sp-mlx"
+        static let ecgCheckpoint = "llama-3.2-1b-ecg-sp-mlx"
+
+        static func item(_ path: String) throws -> URL {
+            guard let url = Bundle.main.resourceURL?.appendingPathComponent(path),
+                  FileManager.default.fileExists(atPath: url.path) else {
+                throw NSError(
+                    domain: "OpenTSLMInferenceService", code: 1,
+                    userInfo: [NSLocalizedDescriptionKey: "\(path) is not bundled; run scripts/fetch_assets.sh"])
+            }
+            return url
+        }
+
+        static func evaluationFile(_ name: String) throws -> URL {
+            try item("EvalData/\(name)")
+        }
+
+        static func ecgQADataset() throws -> ECGQACoTDataset {
+            try ECGQACoTDataset(
+                csvURL: evaluationFile("ecg_qa_cot_test.csv"),
+                waveformsDirectory: evaluationFile("ecg_qa_waveforms"),
+                templateAnswersURL: evaluationFile("ecg_qa_template_answers.json")
+            )
+        }
+    }
+
+    /// The bundled checkpoint `name` on the session's base model.
+    private func bundledModel(_ name: String, on session: LLMLocalSession?) async throws -> TSLM {
+        guard let session, let base = await MainActor.run(body: { session.modelContainer }) else {
+            throw NSError(
+                domain: "OpenTSLMInferenceService", code: 6,
+                userInfo: [NSLocalizedDescriptionKey: "An LLM session is required."])
+        }
+        return try TSLM(base: base, checkpoint: TSLMCheckpoint(directory: BundledAssets.item("Checkpoints/\(name)")))
     }
 
     /// Resolves the encoder/projector checkpoints, loads the SP pipeline, and projects the
