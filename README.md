@@ -19,7 +19,8 @@ The repository contains code only. Model weights and evaluation data are restore
 - `PocketTSLM/`: the iOS app, with on-device inference, accuracy evaluations and benchmarks.
 - `src-swift/`: the `OpenTSLMKit` Swift package (encoder, projector, interleaver, serializer) and its parity tests.
 - `benchmark-results/`: reference benchmark outputs from our run.
-- `scripts/`: asset restore, checkpoint conversion and dataset export helpers.
+- `scripts/`: asset restore and dataset export helpers.
+- `tools/`: the checkpoint converter.
 
 ## Requirements
 
@@ -41,7 +42,11 @@ The script copies
 
 and checks every file against `scripts/assets.sha256`. With `--with-base-weights` it also copies the 2.5 GB `LocalLLM/model.safetensors`, which then ships inside the app. Without it, the app downloads the base weights from Hugging Face on first launch.
 
-The checkpoints were converted from the OpenTSLM-SP releases on Hugging Face (`OpenTSLM/llama-3.2-1b-sleep-sp`, `OpenTSLM/llama-3.2-1b-ecg-sp`) with `scripts/convert_opentslm_checkpoint.py`.
+The checkpoints are conversions of the OpenTSLM-SP releases on Hugging Face, `OpenTSLM/llama-3.2-1b-sleep-sp` and `OpenTSLM/llama-3.2-1b-ecg-sp`. `tools/convert_checkpoint.py` writes the same weights byte for byte, as `encoder.safetensors`, `projector.safetensors` and `lora.safetensors`, together with a `config.json` and a model card:
+
+```bash
+uv run tools/convert_checkpoint.py --input model_checkpoint.pt --out <folder> --task ecg-qa
+```
 
 ## Running the app
 
