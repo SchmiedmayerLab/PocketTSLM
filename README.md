@@ -77,7 +77,7 @@ where `<source>` is laid out like the paper artifact's `PocketTSLM/Supporting Fi
 3. Duplicate the scheme, untick *Shared*, and add the environment variable `HF_TOKEN` with a Hugging Face token whose account has accepted the Llama 3.2 license. Never commit the token. The first launch downloads the 2.5 GB base model into the app's Documents folder.
 4. Run on the iPhone.
 
-The task sheet offers single-sample runs (*EEG sample*, *ECG sample*, *My Watch ECG*), accuracy evaluations on 20 test samples each (*EEG eval (20)*, *ECG eval (20)*), the context-economics benchmarks (*EEG bench*, *ECG bench*) and repeated runs (*EEG var (5×)*, *ECG var (5×)*). Evaluations and benchmarks write JSON reports to the app's Documents folder: `opentslm_sleep_eval.json` and `opentslm_ecg_eval.json` with every generated output, `opentslm_context_economics[_ecg].json`, and `opentslm_repeated_{eeg,ecg}.json`.
+The task sheet offers single-sample runs (*EEG sample*, *ECG sample*, *My Watch ECG*). Under *Evaluations and benchmarks* it has the accuracy evaluations on 20 test samples each (*EEG eval (20)*, *ECG eval (20)*), the context-economics benchmarks (*EEG bench*, *ECG bench*) and repeated runs (*EEG var (5×)*, *ECG var (5×)*). Evaluations and benchmarks write JSON reports to the app's Documents folder: `opentslm_sleep_eval.json` and `opentslm_ecg_eval.json` with every generated output, `opentslm_context_economics[_ecg].json`, and `opentslm_repeated_{eeg,ecg}.json`.
 
 ## Evaluations on the Mac
 
