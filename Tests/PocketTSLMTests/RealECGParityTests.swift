@@ -34,19 +34,6 @@ final class RealECGParityTests: XCTestCase {
         return url
     }
 
-    private func assertParity(_ swiftOut: MLXArray, _ refOut: MLXArray, _ label: String,
-                              maxTol: Float = 1e-4, meanTol: Float = 1e-5) {
-        eval(swiftOut)
-        XCTAssertEqual(swiftOut.shape, refOut.shape, "\(label): shape mismatch")
-        let absDiff = (swiftOut - refOut).abs()
-        eval(absDiff)
-        let maxDiff = absDiff.max(keepDims: false).item(Float.self)
-        let meanDiff = absDiff.mean(keepDims: false).item(Float.self)
-        print("\(label) parity: max_diff=\(maxDiff) mean_diff=\(meanDiff)")
-        XCTAssertLessThan(maxDiff, maxTol, "\(label): max abs diff \(maxDiff) exceeds \(maxTol)")
-        XCTAssertLessThan(meanDiff, meanTol, "\(label): mean abs diff \(meanDiff) exceeds \(meanTol)")
-    }
-
     func testEncoderRealWeightsParity() throws {
         let weightsURL = try fixture("real_encoder_weights.safetensors")
         let ioURL = try fixture("real_encoder_io.safetensors")

@@ -61,18 +61,18 @@ The app resolves mlx-swift 0.21.3, mlx-swift-examples at revision `0c50f71e` and
 
 ## Reproducing the paper
 
-**Parity tests (§3).** Component-level Python↔Swift parity (encoder, projector, fused pipeline, soft-prompt interleaver, RoPE, tokenizer, text serializer) against fixtures, no Python needed. Run them through Xcode, which compiles MLX's Metal shaders; `swift test` on the command line cannot:
+**Parity tests (§3).** Component-level Python↔Swift parity (encoder, projector, fused pipeline, soft-prompt interleaver, RoPE, tokenizer, text serializer) against committed fixtures, no Python needed. Run them through Xcode, which compiles MLX's Metal shaders; `swift test` on the command line cannot:
 
 ```bash
 xcodebuild test -scheme PocketTSLM-Package -destination 'platform=macOS,arch=arm64,name=My Mac'
 ```
 
-Tests whose fixtures are missing are skipped:
-- the tokenizer test reads Meta's tokenizer from `Tests/UITests/TestApp/Supporting Files/LocalLLM/` (restored by `scripts/fetch_assets.sh`) or from the folder in `POCKETTSLM_TOKENIZER_DIR`;
-- the encoder test needs `encoder_weights.safetensors` (9 MB) from the paper artifact in `Tests/PocketTSLMTests/Fixtures/`;
-- the real-weight ECG tests need the fixtures that `generate_real_parity_fixtures.py` writes.
+- The encoder and projector tests use small modules with seeded random weights.
+- The tokenizer test reads Meta's tokenizer from `Tests/UITests/TestApp/Supporting Files/LocalLLM/` (restored by `scripts/fetch_assets.sh`) or from the folder in `POCKETTSLM_TOKENIZER_DIR`, and is skipped without it.
+- The real-weight ECG tests need the fixtures that `generate_real_parity_fixtures.py` writes, and are skipped without them.
+- `Tests/PocketTSLMTests/generate_parity_fixtures.py` regenerates the encoder and projector fixtures from the MLX Python reference.
 
-Tolerances are max 1e-4 / mean 1e-5 (1e-3 for RoPE). In this snapshot the RoPE test's comparison with the default base frequency misses its bound slightly (1.02e-3). The greedy decode itself runs in the app (`OpenTSLMLLM`); the tests cover the pipeline that feeds it.
+Tolerances are max 1e-4 / mean 1e-5 (1e-3 for RoPE). The greedy decode itself runs in the app (`OpenTSLMLLM`); the tests cover the pipeline that feeds it.
 
 **Benchmark (§4).** Run the app on an iPhone and tap **EEG bench** / **ECG bench**: each sweeps time-series tokens, time-to-first-token, and peak memory, and writes `opentslm_context_economics[_ecg].json` to the app's Documents folder. Our reference outputs (iPhone Air, iOS 26.4.1) are in `benchmark-results/`.
 

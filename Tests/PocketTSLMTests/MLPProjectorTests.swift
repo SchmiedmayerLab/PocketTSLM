@@ -49,4 +49,15 @@ final class MLPProjectorTests: XCTestCase {
             XCTAssertFalse(isInf(out).any().item(Bool.self))
         }
     }
+
+    /// Against the MLX Python reference, on the fixtures of `generate_parity_fixtures.py tiny`.
+    func testNumericalParityWithPython() throws {
+        let fixtures = URL(fileURLWithPath: #filePath).deletingLastPathComponent().appendingPathComponent("Fixtures")
+        try Device.withDefaultDevice(.cpu) {
+            let projector = MLPProjector(inputDim: 16, outputDim: 24)
+            try projector.loadWeights(from: fixtures.appendingPathComponent("tiny_projector.safetensors"))
+            let io = try loadArrays(url: fixtures.appendingPathComponent("tiny_io.safetensors"))
+            assertParity(projector(try XCTUnwrap(io["encoded"])), try XCTUnwrap(io["projected"]), "projector")
+        }
+    }
 }

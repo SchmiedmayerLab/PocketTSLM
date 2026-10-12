@@ -103,50 +103,19 @@ final class TransformerCNNEncoderTests: XCTestCase {
         }
     }
 
-    // MARK: - Fixture-based numerical test (Python ↔ Swift parity)
+    // MARK: - Parity with the Python reference
     //
-    // Run `tests/generate_encoder_fixtures.py` first to populate Tests/Fixtures/.
-    // The test is skipped automatically if fixtures are missing.
+    // `generate_parity_fixtures.py tiny` writes a small encoder with seeded random weights, an
+    // input and the output of the MLX Python reference.
 
     func testNumericalParityWithPython() throws {
-        let weightsURL = fixturesURL.appendingPathComponent("encoder_weights.safetensors")
-        let ioURL      = fixturesURL.appendingPathComponent("encoder_io.safetensors")
-
-        guard FileManager.default.fileExists(atPath: weightsURL.path),
-              FileManager.default.fileExists(atPath: ioURL.path)
-        else {
-            throw XCTSkip("Fixtures not found — run tests/generate_encoder_fixtures.py first")
-        }
-
         try Device.withDefaultDevice(.cpu) {
-            // Load encoder and weights
-            let encoder = TransformerCNNEncoder()
-            try encoder.loadWeights(from: weightsURL)
-
-            // Load reference input and output
-            let io = try loadArrays(url: ioURL)
-            guard let refInput = io["input"], let refOutput = io["output"] else {
-                XCTFail("encoder_io.npz missing 'input' or 'output' key")
-                return
-            }
-
-            // Run Swift forward pass
-            let swiftOutput = encoder(refInput)
-            eval(swiftOutput)
-
-            // Compare
-            let absDiff = (swiftOutput - refOutput).abs()
-            eval(absDiff)
-            let maxDiff  = absDiff.max(keepDims: false).item(Float.self)
-            let meanDiff = absDiff.mean(keepDims: false).item(Float.self)
-
-            XCTAssertEqual(swiftOutput.shape, refOutput.shape, "Output shape mismatch")
-            XCTAssertLessThan(maxDiff,  1e-4,
-                "Max abs diff \(maxDiff) exceeds 1e-4 — Python/Swift parity check failed")
-            XCTAssertLessThan(meanDiff, 1e-5,
-                "Mean abs diff \(meanDiff) exceeds 1e-5")
-
-            print("TransformerCNNEncoder parity: max_diff=\(maxDiff) mean_diff=\(meanDiff) ✓")
+            let encoder = TransformerCNNEncoder(
+                outputDim: 16, transformerInputDim: 16, numHeads: 2, numLayers: 2, patchSize: 4, ffDim: 32, maxPatches: 16
+            )
+            try encoder.loadWeights(from: fixturesURL.appendingPathComponent("tiny_encoder.safetensors"))
+            let io = try loadArrays(url: fixturesURL.appendingPathComponent("tiny_io.safetensors"))
+            assertParity(encoder(try XCTUnwrap(io["input"])), try XCTUnwrap(io["encoded"]), "encoder")
         }
     }
 }
