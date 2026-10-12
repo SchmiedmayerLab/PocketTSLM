@@ -46,9 +46,3 @@ upload/
 
 # Python bytecode
 __pycache__/
-
-# Large OpenTSLM parity fixtures. The real_* fixtures are
-# regenerable with the generator scripts in Tests/PocketTSLMTests/; see the README
-# for encoder_weights. The small fixtures are committed.
-Tests/PocketTSLMTests/Fixtures/real_*.safetensors
-Tests/PocketTSLMTests/Fixtures/encoder_weights.safetensors

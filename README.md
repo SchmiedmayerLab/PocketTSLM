@@ -69,8 +69,8 @@ xcodebuild test -scheme PocketTSLM-Package -destination 'platform=macOS,arch=arm
 
 - The encoder and projector tests use small modules with seeded random weights.
 - The tokenizer test reads Meta's tokenizer from `Tests/UITests/TestApp/Supporting Files/LocalLLM/` (restored by `scripts/fetch_assets.sh`) or from the folder in `POCKETTSLM_TOKENIZER_DIR`, and is skipped without it.
-- The real-weight ECG tests need the fixtures that `generate_real_parity_fixtures.py` writes, and are skipped without them.
-- `Tests/PocketTSLMTests/generate_parity_fixtures.py` regenerates the encoder and projector fixtures from the MLX Python reference.
+- The real-weight ECG tests run the converted ECG checkpoint and only run with `POCKETTSLM_INTEGRATION=1`, which `xcodebuild` passes on as `TEST_RUNNER_POCKETTSLM_INTEGRATION=1`. They take the checkpoint from `POCKETTSLM_ECG_CHECKPOINT`, else from `Tests/UITests/Checkpoints/`, else from Hugging Face.
+- `Tests/PocketTSLMTests/generate_parity_fixtures.py` regenerates the encoder, projector and real-weight fixtures from the MLX Python reference.
 
 Tolerances are max 1e-4 / mean 1e-5 (1e-3 for RoPE). The greedy decode itself runs in the app (`OpenTSLMLLM`); the tests cover the pipeline that feeds it.
 

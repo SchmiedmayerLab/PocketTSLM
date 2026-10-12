@@ -17,12 +17,19 @@ the MLX core (0.21.0) of mlx-swift 0.21.3. From the repository root:
 
     export POCKETTSLM_MLX_REFERENCE_SRC=<OpenTSLMMLX checkout>/src
     uv run Tests/PocketTSLMTests/generate_parity_fixtures.py tiny
+    uv run Tests/PocketTSLMTests/generate_parity_fixtures.py real \\
+        --checkpoint Tests/UITests/Checkpoints/llama-3.2-1b-ecg-sp-mlx --data Tests/UITests/EvalData
 
 `tiny` gives a small encoder and projector seeded random weights and writes them with an input and
-the reference outputs (`tiny_*.safetensors`, a few kB) for the offline tests.
+the reference outputs (`tiny_*.safetensors`, a few kB) for the offline tests. `real` runs the ECG
+checkpoint on the first ECG-QA test row and writes the input and a strided subsample of the outputs
+(`real_ecg_parity.safetensors`). The integration tests load the checkpoint themselves, so no real
+weights are committed.
 """
 
 import argparse
+import csv
+import json
 import os
 import sys
 from pathlib import Path
@@ -39,6 +46,9 @@ from ts_encoder import TransformerCNNEncoder  # noqa: E402
 from ts_projector import MLPProjector  # noqa: E402
 
 FIXTURES = Path(__file__).resolve().parent / "Fixtures"
+# Strides of the subsample of the real outputs, [lead, patch, feature]; `RealECGParityTests` uses the same.
+ENCODED_STRIDES = (1, 10, 8)
+PROJECTED_STRIDES = (1, 10, 64)
 
 
 def save(arrays, name):
@@ -74,10 +84,48 @@ def tiny(_):
     save({"input": series, "encoded": np.array(encoded), "projected": np.array(projected)}, "tiny_io.safetensors")
 
 
+def real(arguments):
+    with open(arguments.data / "ecg_qa_cot_test.csv", newline="", encoding="utf-8") as file:
+        row = next(csv.DictReader(file))
+    waveform = json.loads((arguments.data / "ecg_qa_waveforms" / f"{row['ecg_id'].strip(' []')}.json").read_text())
+
+    config = json.loads((arguments.checkpoint / "config.json").read_text())
+    leads = np.array([lead[: config["series"]["maxLength"]] for lead in waveform["time_series"]], dtype=np.float32)
+    dimensions = config["encoder"]["embedDim"]
+    encoder = TransformerCNNEncoder(
+        output_dim=dimensions,
+        transformer_input_dim=dimensions,
+        patch_size=config["encoder"]["patchSize"],
+        max_patches=config["encoder"]["maxPatches"],
+    )
+    encoder.load_weights(str(arguments.checkpoint / "encoder.safetensors"))
+    projector = MLPProjector(input_dim=dimensions, output_dim=config["baseModel"]["hiddenSize"])
+    projector.load_weights(str(arguments.checkpoint / "projector.safetensors"))
+
+    encoded = encoder(mx.array(leads))
+    projected = projector(encoded)
+
+    def subsample(array, strides):
+        return np.array(array)[:: strides[0], :: strides[1], :: strides[2]]
+
+    save(
+        {
+            "input": leads,
+            "encoded": subsample(encoded, ENCODED_STRIDES),
+            "projected": subsample(projected, PROJECTED_STRIDES),
+        },
+        "real_ecg_parity.safetensors",
+    )
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     commands = parser.add_subparsers(required=True)
     commands.add_parser("tiny", help="seeded random weights, for the offline tests").set_defaults(run=tiny)
+    command = commands.add_parser("real", help="the ECG checkpoint on the first ECG-QA test row")
+    command.add_argument("--checkpoint", type=Path, required=True, help="converted ECG checkpoint folder")
+    command.add_argument("--data", type=Path, required=True, help="folder with the ECG-QA test export")
+    command.set_defaults(run=real)
     arguments = parser.parse_args()
 
     mx.set_default_device(mx.cpu)
