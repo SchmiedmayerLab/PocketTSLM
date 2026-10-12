@@ -8,10 +8,10 @@
 
 import Foundation
 import MLX
+import MLXLMCommon
 import OSLog
 import PocketTSLM
 import Spezi
-import SpeziLLMLocal
 
 @Observable
 class OpenTSLMInferenceService: DefaultInitializable, Module, EnvironmentAccessible {
@@ -32,18 +32,18 @@ class OpenTSLMInferenceService: DefaultInitializable, Module, EnvironmentAccessi
     /// returning the prompt and generated answer separately.
     func sleepSampleInteraction(
         sampleIndex: Int = 0,
-        llmSession: LLMLocalSession
+        base: ModelContainer?
     ) async throws -> SampleInteraction {
-        let model = try await bundledModel(BundledAssets.sleepCheckpoint, on: llmSession)
+        let model = try bundledModel(BundledAssets.sleepCheckpoint, on: base)
         return try await interaction(with: model, on: prepared(BundledAssets.sleepRow(sampleIndex, of: "sleep_cot.csv"), for: model))
     }
 
     /// 12-lead ECG-QA single-sample interaction (bundled test row) with the ECG checkpoint.
     func ecgSampleInteraction(
         sampleIndex: Int = 0,
-        llmSession: LLMLocalSession
+        base: ModelContainer?
     ) async throws -> SampleInteraction {
-        let model = try await bundledModel(BundledAssets.ecgCheckpoint, on: llmSession)
+        let model = try bundledModel(BundledAssets.ecgCheckpoint, on: base)
         return try await interaction(with: model, on: prepared(BundledAssets.ecgRow(sampleIndex), for: model))
     }
 
@@ -64,7 +64,7 @@ class OpenTSLMInferenceService: DefaultInitializable, Module, EnvironmentAccessi
     func runECGInference(
         voltages: [Double],
         samplingFrequency: Double,
-        llmSession: LLMLocalSession?
+        base: ModelContainer?
     ) async throws -> String {
         guard !voltages.isEmpty else {
             throw NSError(
@@ -73,7 +73,7 @@ class OpenTSLMInferenceService: DefaultInitializable, Module, EnvironmentAccessi
         }
 
         logger.info("runECGInference: start voltages=\(voltages.count, privacy: .public) freq=\(samplingFrequency, privacy: .public)")
-        let model = try await bundledModel(BundledAssets.ecgCheckpoint, on: llmSession)
+        let model = try bundledModel(BundledAssets.ecgCheckpoint, on: base)
         // Apple Watch records one lead; it is copied to the 12 leads the checkpoint expects, which
         // is a distribution shift from PTB-XL. The question mirrors ECG-QA's most common
         // closed-set template, which greedy decoding answers far more reliably than an open one.
@@ -162,10 +162,10 @@ class OpenTSLMInferenceService: DefaultInitializable, Module, EnvironmentAccessi
         maxTokens: Int = 80,
         contextWindow: Int = 8192,
         maxPromptPositions: Int = 4300,
-        llmSession: LLMLocalSession?
+        base: ModelContainer?
     ) async throws -> String {
         let sweep = lengths ?? (ecg ? [100, 250, 500, 1000] : [100, 250, 500, 1000, 1500])
-        let model = try await bundledModel(ecg ? BundledAssets.ecgCheckpoint : BundledAssets.sleepCheckpoint, on: llmSession)
+        let model = try bundledModel(ecg ? BundledAssets.ecgCheckpoint : BundledAssets.sleepCheckpoint, on: base)
         let row = try ecg ? BundledAssets.ecgRow(0) : BundledAssets.sleepRow(0, of: "sleep_cot_test20.csv")
         let sample = try prepared(row, for: model)
 
@@ -267,9 +267,9 @@ class OpenTSLMInferenceService: DefaultInitializable, Module, EnvironmentAccessi
     func runSleepAccuracyEval(
         sampleCount: Int = 20,
         maxTokens: Int = 200,
-        llmSession: LLMLocalSession?
+        base: ModelContainer?
     ) async throws -> String {
-        let model = try await bundledModel(BundledAssets.sleepCheckpoint, on: llmSession)
+        let model = try bundledModel(BundledAssets.sleepCheckpoint, on: base)
         let samples = try SleepEDFDataset.evaluationSamples(
             csvURL: BundledAssets.evaluationFile("sleep_cot_test20.csv"),
             count: sampleCount
@@ -292,9 +292,9 @@ class OpenTSLMInferenceService: DefaultInitializable, Module, EnvironmentAccessi
         // OpenTSLM's own prediction scripts use 300-400 (and its curriculum eval loop 2000);
         // 200 truncated ECG rationales before they reached `Answer:`, scoring them as wrong.
         maxTokens: Int = 400,
-        llmSession: LLMLocalSession?
+        base: ModelContainer?
     ) async throws -> String {
-        let model = try await bundledModel(BundledAssets.ecgCheckpoint, on: llmSession)
+        let model = try bundledModel(BundledAssets.ecgCheckpoint, on: base)
         let dataset = try BundledAssets.ecgQADataset()
         let samples = try (0 ..< min(sampleCount, dataset.count)).map(dataset.evaluationSample(at:))
         let report = try await Evaluation.run(model, on: samples, maxTokens: maxTokens) { row in
@@ -353,9 +353,9 @@ class OpenTSLMInferenceService: DefaultInitializable, Module, EnvironmentAccessi
         maxTokens: Int = 200,
         contextWindow: Int = 8192,
         maxPromptPositions: Int = 2048,
-        llmSession: LLMLocalSession?
+        base: ModelContainer?
     ) async throws -> String {
-        let model = try await bundledModel(BundledAssets.sleepCheckpoint, on: llmSession)
+        let model = try bundledModel(BundledAssets.sleepCheckpoint, on: base)
         // Use a fixed raw CSV row (no split) — the parity-verified sample whose generation
         // matches the Python reference — so the benchmark's decoded text is coherent and
         // deterministic. Cost metrics (positions/prefill/memory) are sample-independent.
@@ -380,9 +380,9 @@ class OpenTSLMInferenceService: DefaultInitializable, Module, EnvironmentAccessi
         maxTokens: Int = 200,
         contextWindow: Int = 8192,
         maxPromptPositions: Int = 4096,
-        llmSession: LLMLocalSession?
+        base: ModelContainer?
     ) async throws -> String {
-        let model = try await bundledModel(BundledAssets.ecgCheckpoint, on: llmSession)
+        let model = try bundledModel(BundledAssets.ecgCheckpoint, on: base)
         let sample = try prepared(BundledAssets.ecgRow(sampleIndex), for: model)
         let report = try await OpenTSLMBenchmark(model: model).run(
             sample: sample,
@@ -446,12 +446,19 @@ class OpenTSLMInferenceService: DefaultInitializable, Module, EnvironmentAccessi
         }
     }
 
-    /// The bundled checkpoint `name` on the session's base model.
-    private func bundledModel(_ name: String, on session: LLMLocalSession?) async throws -> TSLM {
-        guard let session, let base = await MainActor.run(body: { session.modelContainer }) else {
+    /// The base model the bundled checkpoints were converted for, at its pinned revision.
+    func baseModelConfiguration() throws -> ModelConfiguration {
+        let checkpoint = try TSLMCheckpoint(directory: BundledAssets.item("Checkpoints/\(BundledAssets.sleepCheckpoint)"))
+        let baseModel = checkpoint.configuration.baseModel
+        return ModelConfiguration(id: baseModel.id, revision: baseModel.revision ?? "main")
+    }
+
+    /// The bundled checkpoint `name` on the base model.
+    private func bundledModel(_ name: String, on base: ModelContainer?) throws -> TSLM {
+        guard let base else {
             throw NSError(
                 domain: "OpenTSLMInferenceService", code: 6,
-                userInfo: [NSLocalizedDescriptionKey: "An LLM session is required."])
+                userInfo: [NSLocalizedDescriptionKey: "The base model is not loaded."])
         }
         return try TSLM(base: base, checkpoint: TSLMCheckpoint(directory: BundledAssets.item("Checkpoints/\(name)")))
     }

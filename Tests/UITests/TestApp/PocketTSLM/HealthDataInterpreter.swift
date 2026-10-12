@@ -14,10 +14,7 @@ import Spezi
 import MLX
 import MLXLMCommon
 import MLXLLM
-import SpeziLLM
 import SpeziHealthKit
-import SpeziLLMLocal
-import SpeziLLMLocalDownload
 
 @Observable
 class HealthDataInterpreter: DefaultInitializable, Module, EnvironmentAccessible {
@@ -25,11 +22,8 @@ class HealthDataInterpreter: DefaultInitializable, Module, EnvironmentAccessible
 
     enum LoadingStage: String {
         case idle = "Idle"
-        case stagingModel = "Staging local model files"
-        case downloadingModel = "Downloading model weights"
-        case configuringParameters = "Configuring LLM parameters"
-        case creatingSession = "Creating LLM session"
-        case openingSession = "Opening LLM session (loading weights)"
+        case downloadingModel = "Downloading the base model"
+        case loadingModel = "Loading the base model"
         case ready = "Ready"
         case failed = "Failed"
     }
@@ -37,16 +31,13 @@ class HealthDataInterpreter: DefaultInitializable, Module, EnvironmentAccessible
     private(set) var loaded = false
     private(set) var loadingStage: LoadingStage = .idle
     private(set) var loadingDetail: String = ""
-    
-    @ObservationIgnored @Dependency(LLMRunner.self) private var llmRunner: LLMRunner
+
     @ObservationIgnored @Dependency(OpenTSLMInferenceService.self) private var openTSLMInferenceService: OpenTSLMInferenceService
     @ObservationIgnored @Dependency(HealthKitECGFetcher.self) private var healthKitECGFetcher: HealthKitECGFetcher
-    
-    @ObservationIgnored private var functionCallParameters: LLMLocalParameters?
-    @ObservationIgnored private var functionCallSamplingParameters: LLMLocalSamplingParameters?
-    @ObservationIgnored private var defaultParameters: LLMLocalParameters?
-    @ObservationIgnored private var defaultSamplingParameters: LLMLocalSamplingParameters?
-    @ObservationIgnored private var sharedSession: LLMLocalSession?
+
+    /// The base model the checkpoints run on, loaded once and shared by all tasks.
+    @ObservationIgnored private var baseModel: ModelContainer?
+
     @ObservationIgnored private let requiredModelFiles = [
         "config.json",
         "tokenizer.json",
@@ -68,189 +59,58 @@ class HealthDataInterpreter: DefaultInitializable, Module, EnvironmentAccessible
     ]
     
     required init() { }
-    
-    func setup() async throws {
-        logger.info("setup(): starting. modelID=\(Constants.llmModelName, privacy: .public) destination=\(Constants.llmLocalModelDirectory.path, privacy: .public)")
 
-        // MLX requires a real Metal GPU, which the iOS Simulator does not provide, so
-        // force the CPU backend there. This also runs in the Mac's full RAM (no 6 GB
-        // process cap), enabling the otherwise-OOM cap=1000 ECG run for reference parity.
-        // Must happen before any MLX compute. Slow, but simulator runs are diagnostic only.
+    func setup() async throws {
+        // MLX requires a real Metal GPU, which the iOS Simulator does not provide, so force the
+        // CPU backend there. Must happen before any MLX compute. Slow, but simulator runs are
+        // diagnostic only.
         #if targetEnvironment(simulator)
         Device.setDefault(device: Device(.cpu))
         logger.info("setup(): iOS Simulator detected — forcing MLX CPU backend")
         #endif
 
         // Make the MLX factory build our embedding-capable Llama for "llama"/"mistral"
-        // model types, so the session's model can be primed with OpenTSLM soft-prompt
+        // model types, so the base model can be primed with OpenTSLM soft-prompt
         // embeddings. Idempotent; must run before any LLMModelFactory.shared.loadContainer.
         registerModelTypes()
 
-        await MainActor.run {
-            loadingStage = .stagingModel
-            loadingDetail = Constants.llmModelName
-        }
-
         do {
-            try await stageLocalModelIfNeeded()
-        try await downloadModelWeightsIfNeeded()
-            try removeNonBaseWeightSafetensorsFromModelDirectory()
+            let configuration = try openTSLMInferenceService.baseModelConfiguration()
+            logger.info("setup(): loading \(configuration.name, privacy: .public)")
+            await MainActor.run {
+                loadingStage = .loadingModel
+                loadingDetail = configuration.name
+            }
+            let start = Date()
+            // The first launch downloads the base model into Documents/huggingface, which the
+            // system does not purge. meta-llama/Llama-3.2-1B is gated: swift-transformers reads
+            // HF_TOKEN from the environment, so set it in a local, unshared Xcode scheme.
+            let container = try await LLMModelFactory.shared.loadContainer(
+                hub: HubApi(), configuration: configuration
+            ) { progress in
+                Task { @MainActor in
+                    guard !self.loaded else {
+                        return
+                    }
+                    self.loadingStage = .downloadingModel
+                    self.loadingDetail = "\(Int(progress.fractionCompleted * 100))% of ~2.5 GB"
+                }
+            }
+            baseModel = container
+            let duration = Date().timeIntervalSince(start)
+            logger.info("setup(): loaded in \(duration, privacy: .public)s")
+            await MainActor.run {
+                loaded = true
+                loadingStage = .ready
+                loadingDetail = String(format: "Loaded in %.1fs", duration)
+            }
         } catch {
-            logger.error("setup(): stageLocalModelIfNeeded threw: \(error.localizedDescription, privacy: .public)")
+            logger.error("setup(): \(String(reflecting: error), privacy: .public)")
             await MainActor.run {
                 loadingStage = .failed
-                loadingDetail = "Staging failed: \(error.localizedDescription)"
+                loadingDetail = error.localizedDescription
             }
             throw error
-        }
-
-        await MainActor.run {
-            loadingStage = .configuringParameters
-        }
-        logger.info("setup(): staging complete; configuring parameters")
-
-        let chatTemplate: String? = Constants.useCustomChatTemplate ? Constants.llmModelChatTemplate : nil
-        logger.info("setup(): chatTemplate=\(chatTemplate == nil ? "tokenizer-default" : "custom-jinja", privacy: .public)")
-
-        functionCallParameters = .init(
-            maxOutputLength: 32,
-            chatTemplate: chatTemplate
-        )
-        functionCallSamplingParameters = .init(
-            topP: 1.0,
-            temperature: 0.001,
-            penaltyRepeat: 1.3
-        )
-
-        defaultParameters = .init(
-            maxOutputLength: Constants.llmDefaultMaxOutputLength,
-            chatTemplate: chatTemplate
-        )
-        defaultSamplingParameters = .init(
-            topP: 1.0,
-            temperature: 0.7,
-            penaltyRepeat: 1.2
-        )
-        guard let defaultParameters else {
-            logger.error("setup(): defaultParameters unexpectedly nil after assignment")
-            await MainActor.run {
-                loadingStage = .failed
-                loadingDetail = "defaultParameters nil"
-            }
-            return
-        }
-
-        await MainActor.run {
-            loadingStage = .creatingSession
-        }
-        logger.info("setup(): creating LLMLocalSchema and session")
-
-        let schema = LLMLocalSchema(
-            model: .custom(id: Constants.llmModelName),
-            parameters: defaultParameters,
-            samplingParameters: defaultSamplingParameters ?? .init(),
-            injectIntoContext: true
-        )
-
-        sharedSession = llmRunner.callAsFunction(with: schema)
-        guard let sharedSession else {
-            logger.error("setup(): llmRunner.callAsFunction returned nil session")
-            await MainActor.run {
-                loadingStage = .failed
-                loadingDetail = "llmRunner returned nil session"
-            }
-            return
-        }
-
-        await MainActor.run {
-            loadingStage = .openingSession
-            loadingDetail = "Loading weights — this can take a while on first launch"
-        }
-        let setupStart = Date()
-        let fileManager = FileManager.default
-        let modelDirectory = Constants.llmLocalModelDirectory
-
-        if hasRequiredModelFiles(in: modelDirectory, fileManager: fileManager) {
-            logger.info("setup(): loading MLX container from local directory (bf16 base weights only)")
-            do {
-                let container = try await LLMModelFactory.shared.loadContainer(
-                    configuration: ModelConfiguration(directory: modelDirectory)
-                )
-                await MainActor.run {
-                    sharedSession.modelContainer = container
-                    sharedSession.state = .ready
-                }
-                let setupDuration = Date().timeIntervalSince(setupStart)
-                logger.info("setup(): direct loadContainer succeeded in \(setupDuration, privacy: .public)s")
-                await MainActor.run {
-                    loaded = true
-                    loadingStage = .ready
-                    loadingDetail = String(format: "Loaded in %.1fs", setupDuration)
-                }
-                return
-            } catch {
-                logger.error("setup(): direct loadContainer failed: \(String(reflecting: error), privacy: .public)")
-            }
-        }
-
-        logger.info("setup(): calling sharedSession.setup() — Hub snapshot fallback")
-
-        do {
-            try await sharedSession.setup()
-        } catch {
-            logger.error("setup(): sharedSession.setup() threw after \(Date().timeIntervalSince(setupStart), privacy: .public)s: \(error.localizedDescription, privacy: .public)")
-            await MainActor.run {
-                loadingStage = .failed
-                loadingDetail = "Session setup failed: \(error.localizedDescription)"
-            }
-            throw HealthDataInterpreterError.modelNotLoaded
-        }
-
-        let setupDuration = Date().timeIntervalSince(setupStart)
-        logger.info("setup(): sharedSession.setup() completed in \(setupDuration, privacy: .public)s")
-
-        await MainActor.run {
-            loaded = true
-            loadingStage = .ready
-            loadingDetail = String(format: "Loaded in %.1fs", setupDuration)
-        }
-    }
-
-    /// Downloads the base LLM weights from the Hugging Face Hub when they are not already
-    /// present. `LLMLocalDownloadManager` fetches `["*.safetensors", "config.json"]` into
-    /// `HubApi.shared.localRepoLocation(repo)`, which is the same directory as
-    /// ``Constants/llmLocalModelDirectory``. `meta-llama/Llama-3.2-1B` is gated, so `HubApi`
-    /// needs an `HF_TOKEN` in the process environment (set it in your user-specific,
-    /// unshared Xcode run scheme).
-    private func downloadModelWeightsIfNeeded() async throws {
-        let fileManager = FileManager.default
-        let destinationURL = Constants.llmLocalModelDirectory
-        if fileManager.fileExists(atPath: destinationURL.appendingPathComponent("model.safetensors").path) {
-            logger.info("downloadModelWeightsIfNeeded: weights already present — skipping download")
-            return
-        }
-
-        logger.info("downloadModelWeightsIfNeeded: downloading \(Constants.llmModelName, privacy: .public) from the Hub")
-        loadingStage = .downloadingModel
-        let manager = await LLMLocalDownloadManager(model: .custom(id: Constants.llmModelName))
-        await manager.startDownload()
-
-        while true {
-            let state = await manager.state
-            switch state {
-            case .downloaded:
-                logger.info("downloadModelWeightsIfNeeded: download complete")
-                loadingDetail = ""
-                return
-            case .error(let error):
-                logger.error("downloadModelWeightsIfNeeded: failed: \(error.localizedDescription, privacy: .public)")
-                throw error
-            case .downloading(let progress):
-                loadingDetail = "\(Int(progress.fractionCompleted * 100))% of ~2.5 GB"
-            case .idle:
-                break
-            }
-            try await Task.sleep(for: .seconds(1))
         }
     }
 
@@ -445,9 +305,9 @@ class HealthDataInterpreter: DefaultInitializable, Module, EnvironmentAccessible
     /// EEG/sleep single-sample inference — returns the constructed prompt and the model's
     /// generated answer for the chat transcript.
     func eegSample() async -> ChatTurn {
-        guard let sharedSession else { return ChatTurn(prompt: "EEG sample", response: "LLM session not loaded.") }
+        guard let baseModel else { return ChatTurn(prompt: "EEG sample", response: "The base model is not loaded.") }
         do {
-            let interaction = try await openTSLMInferenceService.sleepSampleInteraction(llmSession: sharedSession)
+            let interaction = try await openTSLMInferenceService.sleepSampleInteraction(base: baseModel)
             return ChatTurn(prompt: interaction.prompt, response: interaction.response)
         } catch {
             return ChatTurn(prompt: "EEG sample", response: "Failed: \(error.localizedDescription)")
@@ -456,9 +316,9 @@ class HealthDataInterpreter: DefaultInitializable, Module, EnvironmentAccessible
 
     /// 12-lead ECG single-sample inference.
     func ecgSample() async -> ChatTurn {
-        guard let sharedSession else { return ChatTurn(prompt: "ECG sample", response: "LLM session not loaded.") }
+        guard let baseModel else { return ChatTurn(prompt: "ECG sample", response: "The base model is not loaded.") }
         do {
-            let interaction = try await openTSLMInferenceService.ecgSampleInteraction(llmSession: sharedSession)
+            let interaction = try await openTSLMInferenceService.ecgSampleInteraction(base: baseModel)
             return ChatTurn(prompt: interaction.prompt, response: interaction.response)
         } catch {
             return ChatTurn(prompt: "ECG sample", response: "Failed: \(error.localizedDescription)")
@@ -468,10 +328,10 @@ class HealthDataInterpreter: DefaultInitializable, Module, EnvironmentAccessible
     /// On-device accuracy eval over the pinned 20-row Sleep-EDF test-split export.
     /// Comparable sample-for-sample with the Python reference runs.
     func eegAccuracyEval() async -> ChatTurn {
-        guard let sharedSession else { return ChatTurn(prompt: "EEG eval", response: "LLM session not loaded.") }
+        guard let baseModel else { return ChatTurn(prompt: "EEG eval", response: "The base model is not loaded.") }
         do {
             let summary = try await openTSLMInferenceService.runSleepAccuracyEval(
-                sampleCount: 20, maxTokens: 200, llmSession: sharedSession
+                sampleCount: 20, maxTokens: 200, base: baseModel
             )
             return ChatTurn(prompt: "Run the Sleep-EDF accuracy eval (20 pinned test samples).", response: summary)
         } catch {
@@ -481,10 +341,10 @@ class HealthDataInterpreter: DefaultInitializable, Module, EnvironmentAccessible
 
     /// On-device accuracy eval over the bundled 12-lead ECG-QA CoT test rows.
     func ecgAccuracyEval() async -> ChatTurn {
-        guard let sharedSession else { return ChatTurn(prompt: "ECG eval", response: "LLM session not loaded.") }
+        guard let baseModel else { return ChatTurn(prompt: "ECG eval", response: "The base model is not loaded.") }
         do {
             let summary = try await openTSLMInferenceService.runECGAccuracyEval(
-                sampleCount: 20, maxTokens: 400, llmSession: sharedSession
+                sampleCount: 20, maxTokens: 400, base: baseModel
             )
             return ChatTurn(prompt: "Run the ECG-QA accuracy eval (20 bundled test samples).", response: summary)
         } catch {
@@ -496,7 +356,7 @@ class HealthDataInterpreter: DefaultInitializable, Module, EnvironmentAccessible
     /// path here that uses real, prospectively recorded physiological data rather than a
     /// bundled research sample. Nothing leaves the device.
     func ecgFromHealthKit(healthKit: HealthKit) async -> ChatTurn {
-        guard let sharedSession else { return ChatTurn(prompt: "HealthKit ECG", response: "LLM session not loaded.") }
+        guard let baseModel else { return ChatTurn(prompt: "HealthKit ECG", response: "The base model is not loaded.") }
         do {
             try await healthKitECGFetcher.askForAuthorization(healthKit)
             guard let ecg = try await healthKitECGFetcher.fetchLatestElectrocardiogram(healthKit),
@@ -511,7 +371,7 @@ class HealthDataInterpreter: DefaultInitializable, Module, EnvironmentAccessible
             let analysis = try await openTSLMInferenceService.runECGInference(
                 voltages: ecg.voltages,
                 samplingFrequency: ecg.samplingFrequency ?? 512.0,
-                llmSession: sharedSession
+                base: baseModel
             )
             let recorded = ecg.startDate.formatted(date: .abbreviated, time: .shortened)
             let heartRate = ecg.averageHeartRate.map { " · \(Int($0)) bpm" } ?? ""
@@ -535,10 +395,10 @@ class HealthDataInterpreter: DefaultInitializable, Module, EnvironmentAccessible
     }
 
     private func repeatedBenchmark(ecg: Bool, label: String) async -> ChatTurn {
-        guard let sharedSession else { return ChatTurn(prompt: "\(label) variance", response: "LLM session not loaded.") }
+        guard let baseModel else { return ChatTurn(prompt: "\(label) variance", response: "The base model is not loaded.") }
         do {
             let summary = try await openTSLMInferenceService.runRepeatedContextEconomics(
-                ecg: ecg, repeats: 5, llmSession: sharedSession
+                ecg: ecg, repeats: 5, base: baseModel
             )
             return ChatTurn(prompt: "Run the \(label) context-economics sweep 5× and report variance.", response: summary)
         } catch {
@@ -548,10 +408,10 @@ class HealthDataInterpreter: DefaultInitializable, Module, EnvironmentAccessible
 
     /// EEG (sleep) §4 context-economics benchmark — full JSON also written to Documents.
     func eegBenchmark() async -> ChatTurn {
-        guard let sharedSession else { return ChatTurn(prompt: "EEG benchmark", response: "LLM session not loaded.") }
+        guard let baseModel else { return ChatTurn(prompt: "EEG benchmark", response: "The base model is not loaded.") }
         do {
             let summary = try await openTSLMInferenceService.runContextEconomicsBenchmark(
-                maxTokens: 80, maxPromptPositions: 4300, llmSession: sharedSession
+                maxTokens: 80, maxPromptPositions: 4300, base: baseModel
             )
             return ChatTurn(prompt: "Run the EEG (sleep) context-economics benchmark.", response: summary)
         } catch {
@@ -561,10 +421,10 @@ class HealthDataInterpreter: DefaultInitializable, Module, EnvironmentAccessible
 
     /// 12-lead ECG §4 context-economics benchmark — full JSON also written to Documents.
     func ecgBenchmark() async -> ChatTurn {
-        guard let sharedSession else { return ChatTurn(prompt: "ECG benchmark", response: "LLM session not loaded.") }
+        guard let baseModel else { return ChatTurn(prompt: "ECG benchmark", response: "The base model is not loaded.") }
         do {
             let summary = try await openTSLMInferenceService.runContextEconomicsBenchmarkECG(
-                maxTokens: 80, maxPromptPositions: 4300, llmSession: sharedSession
+                maxTokens: 80, maxPromptPositions: 4300, base: baseModel
             )
             return ChatTurn(prompt: "Run the 12-lead ECG context-economics benchmark.", response: summary)
         } catch {

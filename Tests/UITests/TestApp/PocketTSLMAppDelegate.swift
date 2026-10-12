@@ -9,17 +9,12 @@
 import HealthKit
 import Spezi
 import SpeziHealthKit
-import SpeziLLM
-import SpeziLLMLocal
 import SwiftUI
 
 
 class PocketTSLMAppDelegate: SpeziAppDelegate {
     override var configuration: Configuration {
         Configuration(standard: HealthyStandard()) {
-            LLMRunner {
-                LLMLocalPlatform()
-            }
             HealthDataInterpreter()
             OpenTSLMInferenceService()
             HealthKitECGFetcher()
