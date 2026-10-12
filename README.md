@@ -28,7 +28,7 @@ The repository contains code only. Model weights and evaluation data are restore
 ## Requirements
 
 - macOS with Xcode 26 and an Apple-silicon iPhone, for the latency and memory numbers. MLX needs a real Metal GPU; in the simulator the app falls back to the CPU, which is only good for diagnostics.
-- Access to [`meta-llama/Llama-3.2-1B`](https://huggingface.co/meta-llama/Llama-3.2-1B), which is gated, unless you bundle the base weights (see below).
+- Access to [`meta-llama/Llama-3.2-1B`](https://huggingface.co/meta-llama/Llama-3.2-1B), which is gated. The app downloads it on first launch, at the revision the checkpoints pin.
 
 ## Using the package
 
@@ -62,19 +62,19 @@ The checkpoints are conversions of the OpenTSLM-SP releases on Hugging Face, `Op
 uv run tools/convert_checkpoint.py --input model_checkpoint.pt --out <folder>/llama-3.2-1b-ecg-sp-mlx --task ecg-qa
 ```
 
-The demo app bundles the base model's config and tokenizer from `Tests/UITests/TestApp/Supporting Files/LocalLLM/`, the checkpoints from `Tests/UITests/Checkpoints/` and the evaluation data from `Tests/UITests/EvalData/`, which git ignores. Restore them with
+The demo app bundles the checkpoints from `Tests/UITests/Checkpoints/` and the evaluation data from `Tests/UITests/EvalData/`, which git ignores. Restore them with
 
 ```bash
-scripts/fetch_assets.sh [--with-base-weights] --checkpoints <folder with llama-3.2-1b-{sleep,ecg}-sp-mlx> <source>
+scripts/fetch_assets.sh --checkpoints <folder with llama-3.2-1b-{sleep,ecg}-sp-mlx> <source>
 ```
 
-where `<source>` is laid out like the paper artifact's `PocketTSLM/Supporting Files`: the base model in `LocalLLM/`, and the Sleep-EDF exports (`sleep_cot.csv`, `sleep_cot_test20.csv`) and the ECG-QA exports (`ecg_qa_cot_test.csv`, `ecg_qa_template_answers.json`, `ecg_qa_waveforms/`) in `OpenTSLM/`. The script checks every file against `scripts/assets.sha256`. With `--with-base-weights` it also copies the 2.5 GB `LocalLLM/model.safetensors`, which then ships inside the app. Without it, the app downloads the base weights from Hugging Face on first launch.
+where `<source>` is laid out like the paper artifact's `PocketTSLM/Supporting Files`, with the Sleep-EDF exports (`sleep_cot.csv`, `sleep_cot_test20.csv`) and the ECG-QA exports (`ecg_qa_cot_test.csv`, `ecg_qa_template_answers.json`, `ecg_qa_waveforms/`) in `OpenTSLM/`. The script checks every file against `scripts/assets.sha256`.
 
 ## Running the app
 
 1. Open `Tests/UITests/UITests.xcodeproj` and select the `TestApp` scheme.
 2. Choose your development team under *Signing & Capabilities*. Do not commit it.
-3. Unless you bundled the base weights, duplicate the scheme, untick *Shared*, and add the environment variable `HF_TOKEN` with a Hugging Face token whose account has accepted the Llama 3.2 license. Never commit the token.
+3. Duplicate the scheme, untick *Shared*, and add the environment variable `HF_TOKEN` with a Hugging Face token whose account has accepted the Llama 3.2 license. Never commit the token. The first launch downloads the 2.5 GB base model into the app's Documents folder.
 4. Run on the iPhone.
 
 The task sheet offers single-sample runs (*EEG sample*, *ECG sample*, *My Watch ECG*), accuracy evaluations on 20 test samples each (*EEG eval (20)*, *ECG eval (20)*), the context-economics benchmarks (*EEG bench*, *ECG bench*) and repeated runs (*EEG var (5×)*, *ECG var (5×)*). Evaluations and benchmarks write JSON reports to the app's Documents folder: `opentslm_sleep_eval.json` and `opentslm_ecg_eval.json` with every generated output, `opentslm_context_economics[_ecg].json`, and `opentslm_repeated_{eeg,ecg}.json`.
@@ -100,7 +100,7 @@ xcodebuild test -scheme PocketTSLM-Package -destination 'platform=macOS,arch=arm
 ```
 
 - The encoder and projector tests use small modules with seeded random weights.
-- The tokenizer test reads Meta's tokenizer from `Tests/UITests/TestApp/Supporting Files/LocalLLM/` (restored by `scripts/fetch_assets.sh`) or from the folder in `POCKETTSLM_TOKENIZER_DIR`, and is skipped without it.
+- The tokenizer test reads Meta's tokenizer from the Hugging Face cache (`~/.cache/huggingface/hub`, the revision the checkpoints pin) or from the folder in `POCKETTSLM_TOKENIZER_DIR`, and is skipped without it.
 - The real-weight ECG tests run the converted ECG checkpoint and only run with `POCKETTSLM_INTEGRATION=1`, which `xcodebuild` passes on as `TEST_RUNNER_POCKETTSLM_INTEGRATION=1`. They take the checkpoint from `POCKETTSLM_ECG_CHECKPOINT`, else from `Tests/UITests/Checkpoints/`, else from Hugging Face.
 - `Tests/PocketTSLMTests/generate_parity_fixtures.py` regenerates the encoder, projector and real-weight fixtures from the MLX Python reference.
 

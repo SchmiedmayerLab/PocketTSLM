@@ -18,17 +18,19 @@ final class TokenizerParityTests: XCTestCase {
     }
 
     /// Folder with Meta's Llama-3.2-1B tokenizer files: `POCKETTSLM_TOKENIZER_DIR`, or else the
-    /// app's `Supporting Files/LocalLLM`, which `scripts/fetch_assets.sh` fills.
-    private let modelFolder: URL = {
+    /// Hugging Face cache's snapshot of the base-model revision the checkpoints pin.
+    private var modelFolder: URL {
         if let path = ProcessInfo.processInfo.environment["POCKETTSLM_TOKENIZER_DIR"] {
             return URL(fileURLWithPath: path)
         }
-        return URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()  // PocketTSLMTests
-            .deletingLastPathComponent()  // Tests
-            .deletingLastPathComponent()  // repository root
-            .appendingPathComponent("Tests/UITests/TestApp/Supporting Files/LocalLLM")
-    }()
+        guard let baseModel = try? TSLMCheckpoint(directory: fixturesURL.appendingPathComponent("Checkpoints/sleep-edf"))
+            .configuration.baseModel else {
+            return fixturesURL
+        }
+        return FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(
+            ".cache/huggingface/hub/models--\(baseModel.id.replacingOccurrences(of: "/", with: "--"))/snapshots/\(baseModel.revision ?? "main")"
+        )
+    }
 
     func testTokenizerParityWithPython() async throws {
         let refURL = fixturesURL.appendingPathComponent("tokenizer_ref.json")

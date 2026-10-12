@@ -34,7 +34,6 @@ report.html
 /data/
 
 # Model files and evaluation data, restored by scripts/fetch_assets.sh
-Tests/UITests/TestApp/Supporting Files/LocalLLM/
 Tests/UITests/TestApp/Supporting Files/OpenTSLM/
 Tests/UITests/Checkpoints/*
 !Tests/UITests/Checkpoints/README.md
