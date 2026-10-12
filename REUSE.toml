@@ -8,6 +8,7 @@ path = [
     "scripts/assets.sha256",
     "tools/tasks/**",
     "Tests/PocketTSLMTests/Fixtures/**",
+    "baselines/**/*.json",
 ]
 SPDX-FileCopyrightText = "2026 Schmiedmayer Lab and the project authors (see CONTRIBUTORS.md)"
 SPDX-License-Identifier = "MIT"
