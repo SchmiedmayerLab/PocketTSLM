@@ -38,7 +38,9 @@ let package = Package(
             name: "pockettslm-cli",
             dependencies: [
                 "PocketTSLM",
-                .product(name: "MLX", package: "mlx-swift")
+                .product(name: "MLX", package: "mlx-swift"),
+                .product(name: "MLXLLM", package: "mlx-swift-examples"),
+                .product(name: "MLXLMCommon", package: "mlx-swift-examples")
             ]
         ),
         .testTarget(

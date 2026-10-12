@@ -1,115 +1,134 @@
+//
+// This source file is part of the PocketTSLM open-source project
+//
+// SPDX-FileCopyrightText: 2026 Schmiedmayer Lab and the project authors (see CONTRIBUTORS.md)
+//
+// SPDX-License-Identifier: MIT
+//
+
 import Foundation
 import MLX
+import MLXLLM
+import MLXLMCommon
 import PocketTSLM
 
-struct RunnerConfig {
+let usage = """
+    Usage: pockettslm-cli eval --base <dir> --checkpoint <dir> --data <dir> [options]
 
-    var encoderPath = "../checkpoints/mlx-checkpoint.encoder.safetensors"
-    var projectorPath = "../checkpoints/mlx-checkpoint.projector.safetensors"
-    var csvPath = "../data/sleep/sleep_cot.csv"
-    var split = SleepEDFDataset.Split.test
-    var sampleIdx = 0
-    var hiddenSize = 2048
+    Runs a checkpoint's accuracy evaluation as the demo app does and writes the same report JSON.
 
-    init(arguments: [String]) {
-        var index = 1
-        while index < arguments.count {
-            let key = arguments[index]
-            let value = (index + 1 < arguments.count) ? arguments[index + 1] : nil
+      --base <dir>        Llama-3.2-1B folder with config.json, the tokenizer files and model.safetensors
+      --checkpoint <dir>  PocketTSLM checkpoint folder, e.g. Tests/UITests/Checkpoints/llama-3.2-1b-sleep-sp-mlx
+      --data <dir>        Evaluation data, e.g. Tests/UITests/EvalData (scripts/fetch_assets.sh fills both)
+      --count <n>         Rows to evaluate (default: 20)
+      --max-tokens <n>    New tokens per answer (default: the checkpoint's)
+      --output <file>     Where to write the report (default: standard output)
+      --cpu               Run on the CPU instead of the GPU
+    """
 
-            switch key {
-            case "--encoder":
-                if let value {
-                    encoderPath = value
-                    index += 1
-                }
-            case "--projector":
-                if let value {
-                    projectorPath = value
-                    index += 1
-                }
-            case "--csv":
-                if let value {
-                    csvPath = value
-                    index += 1
-                }
-            case "--split":
-                if let value, let parsed = SleepEDFDataset.Split(rawValue: value) {
-                    split = parsed
-                    index += 1
-                }
-            case "--sample-idx":
-                if let value, let parsed = Int(value) {
-                    sampleIdx = parsed
-                    index += 1
-                }
-            case "--hidden-size":
-                if let value, let parsed = Int(value) {
-                    hiddenSize = parsed
-                    index += 1
-                }
-            case "--help", "-h":
-                printHelpAndExit()
-            default:
-                break
+struct UsageError: Error, CustomStringConvertible {
+    let description: String
+}
+
+struct EvalOptions {
+    var base: URL?
+    var checkpoint: URL?
+    var data: URL?
+    var count = 20
+    var maxTokens: Int?
+    var output: URL?
+    var cpu = false
+
+    init(_ arguments: ArraySlice<String>) throws {
+        var arguments = arguments
+        func value(of option: String) throws -> String {
+            guard let value = arguments.popFirst() else {
+                throw UsageError(description: "\(option) needs a value")
             }
-
-            index += 1
+            return value
         }
-    }
-
-    func printHelpAndExit() -> Never {
-        print("""
-        OpenTSLMRunner - Swift runner for OpenTSLM encoder/projector pipeline
-
-        Options:
-          --encoder <path>       Encoder safetensors path
-          --projector <path>     Projector safetensors path
-          --csv <path>           Sleep-EDF CSV path
-          --split <name>         train | validation | test
-          --sample-idx <int>     Sample index inside selected split
-          --hidden-size <int>    Projector output dimension
-          --help                 Show this help
-        """)
-        Foundation.exit(0)
+        func number(of option: String) throws -> Int {
+            guard let number = Int(try value(of: option)), number > 0 else {
+                throw UsageError(description: "\(option) needs a positive number")
+            }
+            return number
+        }
+        while let option = arguments.popFirst() {
+            switch option {
+            case "--base": base = URL(fileURLWithPath: try value(of: option))
+            case "--checkpoint": checkpoint = URL(fileURLWithPath: try value(of: option))
+            case "--data": data = URL(fileURLWithPath: try value(of: option))
+            case "--count": count = try number(of: option)
+            case "--max-tokens": maxTokens = try number(of: option)
+            case "--output": output = URL(fileURLWithPath: try value(of: option))
+            case "--cpu": cpu = true
+            default: throw UsageError(description: "unknown option \(option)")
+            }
+        }
     }
 }
 
-let config = RunnerConfig(arguments: CommandLine.arguments)
-try using(device: .cpu) {
-    let pipeline = OpenTSLMSPPipeline(hiddenSize: config.hiddenSize)
-    try pipeline.loadWeights(
-        encoderURL: URL(fileURLWithPath: config.encoderPath),
-        projectorURL: URL(fileURLWithPath: config.projectorPath)
-    )
-
-    let sample: OpenTSLMSPSample
-    let dataset = try SleepEDFDataset(
-        csvURL: URL(fileURLWithPath: config.csvPath),
-        split: config.split
-    )
-
-    if dataset.count == 0 {
-        throw NSError(domain: "OpenTSLMRunner", code: 10, userInfo: [NSLocalizedDescriptionKey: "Selected split has no samples"])
+/// The rows the demo app evaluates for `task`, from the evaluation data folder.
+func evaluationSamples(task: String, data: URL, count: Int) throws -> [EvaluationSample] {
+    switch task {
+    case "sleep-edf":
+        return try SleepEDFDataset.evaluationSamples(csvURL: data.appendingPathComponent("sleep_cot_test20.csv"), count: count)
+    case "ecg-qa":
+        let dataset = try ECGQACoTDataset(
+            csvURL: data.appendingPathComponent("ecg_qa_cot_test.csv"),
+            waveformsDirectory: data.appendingPathComponent("ecg_qa_waveforms"),
+            templateAnswersURL: data.appendingPathComponent("ecg_qa_template_answers.json")
+        )
+        return try (0 ..< min(count, dataset.count)).map(dataset.evaluationSample(at:))
+    default:
+        throw UsageError(description: "no evaluation data for task \(task)")
     }
+}
 
-    let safeIndex = min(max(config.sampleIdx, 0), dataset.count - 1)
-    sample = dataset.sample(at: safeIndex)
+func printError(_ text: String) {
+    FileHandle.standardError.write(Data((text + "\n").utf8))
+}
 
-    print("Loaded sample index: \(safeIndex) (split=\(config.split.rawValue))")
-
-    let projected = pipeline.projectSample(sample)
-
-    print("Label: \(sample.label)")
-    print("Series count: \(sample.timeSeries.count)")
-    print("Prompt text count: \(sample.timeSeriesText.count)")
-
-    for (i, tensor) in projected.enumerated() {
-        eval(tensor)
-        print("Projected[\(i)] shape: \(tensor.shape)")
+func evaluate(_ options: EvalOptions) async throws {
+    guard let base = options.base, let checkpointURL = options.checkpoint, let data = options.data else {
+        throw UsageError(description: "--base, --checkpoint and --data are required")
     }
+    if options.cpu {
+        Device.setDefault(device: Device(.cpu))
+    }
+    let checkpoint = try TSLMCheckpoint(directory: checkpointURL)
+    let samples = try evaluationSamples(task: checkpoint.configuration.task, data: data, count: options.count)
 
-    print("\nPython parity note:")
-    print("- This runner executes the same Swift encoder + projector path as Python.")
-    print("- Full LLM token generation (including LoRA text decoding) still runs in Python in this repo.")
+    registerModelTypes()
+    let container = try await LLMModelFactory.shared.loadContainer(configuration: ModelConfiguration(directory: base))
+    let model = try TSLM(base: container, checkpoint: checkpoint)
+    let report = try await Evaluation.run(model, on: samples, maxTokens: options.maxTokens) { row in
+        printError("[\(row.index + 1)/\(samples.count)] gt=\(row.groundTruth ?? "nil") pred=\(row.predicted ?? "nil") \(row.correct ? "OK" : "X") \(row.seconds)s")
+    }
+    printError("accuracy: \(report.correct)/\(report.rows.count)   parsed: \(report.parsed)/\(report.rows.count)")
+
+    let json = try report.json()
+    if let output = options.output {
+        try json.write(to: output)
+    } else {
+        FileHandle.standardOutput.write(json + Data("\n".utf8))
+    }
+}
+
+let arguments = CommandLine.arguments.dropFirst()
+if arguments.contains("--help") || arguments.contains("-h") {
+    print(usage)
+    exit(0)
+}
+do {
+    guard arguments.first == "eval" else {
+        throw UsageError(description: arguments.first.map { "unknown command \($0)" } ?? "missing command")
+    }
+    try await evaluate(EvalOptions(arguments.dropFirst()))
+} catch let error as UsageError {
+    printError("error: \(error)\n\n\(usage)")
+    exit(2)
+} catch {
+    printError("error: \(error.localizedDescription)")
+    exit(1)
 }
