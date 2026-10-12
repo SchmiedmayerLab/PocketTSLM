@@ -11,10 +11,10 @@ import SpeziHealthKit
 import SwiftUI
 import OSLog
 
-/// Chat-style front end for PocketTSLM. On launch it loads the model via the Spezi LLM
-/// stack; once ready it offers four suggestion buttons (EEG/ECG benchmark, EEG/ECG
-/// sample). Tapping one runs the operation on-device and appends the constructed prompt
-/// as the sender bubble and the model's generated answer as the reply bubble.
+/// Chat-style front end for PocketTSLM. On launch it loads the base model through MLX; once
+/// ready, the task sheet offers the sample runs and, under *Evaluations and benchmarks*, the
+/// paper's evaluations and benchmarks. Tapping one runs the operation on-device and appends
+/// the constructed prompt as the sender bubble and the model's generated answer as the reply bubble.
 struct PocketTSLMView: View {
     private static let logger = Logger(subsystem: "PocketTSLM", category: "PocketTSLMView")
 
@@ -26,6 +26,7 @@ struct PocketTSLMView: View {
     @State private var isRunning = false
     @State private var errorMessage = ""
     @State private var actionSheetDetent: PresentationDetent = Self.collapsedDetent
+    @State private var showsEvaluations = false
 
     private static let collapsedDetent = PresentationDetent.height(72)
 
@@ -140,24 +141,31 @@ struct PocketTSLMView: View {
     private var actionButtons: some View {
         VStack(spacing: 8) {
             HStack(spacing: 8) {
-                actionButton("EEG bench", systemImage: "chart.bar") { await interpreter.eegBenchmark() }
-                actionButton("ECG bench", systemImage: "chart.bar.doc.horizontal") { await interpreter.ecgBenchmark() }
-            }
-            HStack(spacing: 8) {
                 actionButton("EEG sample", systemImage: "brain.head.profile") { await interpreter.eegSample() }
                 actionButton("ECG sample", systemImage: "heart.text.square") { await interpreter.ecgSample() }
             }
             HStack(spacing: 8) {
-                actionButton("EEG eval (20)", systemImage: "checklist") { await interpreter.eegAccuracyEval() }
-                actionButton("ECG eval (20)", systemImage: "checklist.checked") { await interpreter.ecgAccuracyEval() }
-            }
-            HStack(spacing: 8) {
                 actionButton("My Watch ECG", systemImage: "applewatch") { await interpreter.ecgFromHealthKit(healthKit: healthKit) }
             }
-            HStack(spacing: 8) {
-                actionButton("EEG var (5×)", systemImage: "chart.line.uptrend.xyaxis") { await interpreter.eegRepeatedBenchmark() }
-                actionButton("ECG var (5×)", systemImage: "chart.line.uptrend.xyaxis") { await interpreter.ecgRepeatedBenchmark() }
+            // The paper's evaluations and benchmarks, which write JSON reports to Documents.
+            DisclosureGroup("Evaluations and benchmarks", isExpanded: $showsEvaluations) {
+                VStack(spacing: 8) {
+                    HStack(spacing: 8) {
+                        actionButton("EEG eval (20)", systemImage: "checklist") { await interpreter.eegAccuracyEval() }
+                        actionButton("ECG eval (20)", systemImage: "checklist.checked") { await interpreter.ecgAccuracyEval() }
+                    }
+                    HStack(spacing: 8) {
+                        actionButton("EEG bench", systemImage: "chart.bar") { await interpreter.eegBenchmark() }
+                        actionButton("ECG bench", systemImage: "chart.bar.doc.horizontal") { await interpreter.ecgBenchmark() }
+                    }
+                    HStack(spacing: 8) {
+                        actionButton("EEG var (5×)", systemImage: "chart.line.uptrend.xyaxis") { await interpreter.eegRepeatedBenchmark() }
+                        actionButton("ECG var (5×)", systemImage: "chart.line.uptrend.xyaxis") { await interpreter.ecgRepeatedBenchmark() }
+                    }
+                }
+                .padding(.top, 8)
             }
+            .padding(.top, 4)
         }
     }
 
