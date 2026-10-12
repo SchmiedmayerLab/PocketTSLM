@@ -1,32 +1,27 @@
 //
-// EmbeddingLlamaModel.swift
+// This source file is part of the PocketTSLM open-source project
 //
-// Vendored copy of mlx-swift-examples `Libraries/MLXLLM/Models/Llama.swift`
-// (Copyright © 2024 Apple Inc.), adapted to accept pre-computed input embeddings
-// (`inputs_embeds`) so OpenTSLM soft-prompt time-series embeddings can be fed
-// directly into the Llama decoder.
-//
-// Why a full vendored copy rather than a subclass/extension: the upstream
-// building blocks (`Attention`, `MLP`, `TransformerBlock`, `LlamaModelInner`)
-// and `LlamaConfiguration`'s stored properties are `internal` to MLXLLM and
-// therefore unreachable from this module. Copying is the only way to inject
-// embeddings into the forward pass from app code.
-//
-// Differences from upstream (kept intentionally minimal):
-//  - Types renamed with an `EmbeddingLlama*` prefix to avoid colliding with the
-//    real `MLXLLM.LlamaModel` (which is still loaded for non-OpenTSLM chat).
-//  - `EmbeddingLlamaConfiguration` is a verbatim copy of `LlamaConfiguration`
-//    (its fields are internal upstream, so we need our own readable copy).
-//  - The inner/outer forward gains an optional `inputEmbedding` that, when
-//    present, replaces the token-embedding lookup. The token-only
-//    `callAsFunction(_:cache:)` (the `LLMModel` requirement used by normal
-//    chat / `TokenIterator`) is unchanged.
-//  - Conforms to the app's `EmbeddingPrimedLanguageModel` so
-//    `MLXEmbeddingGenerator` can drive embedding-primed decoding.
-//  - The unused `computeBaseFrequency` free function from upstream is omitted.
+// SPDX-FileCopyrightText: 2024 Apple Inc.
+// SPDX-FileCopyrightText: 2026 Schmiedmayer Lab and the project authors (see CONTRIBUTORS.md)
 //
 // SPDX-License-Identifier: MIT
 //
+
+// A copy of mlx-swift-examples `Libraries/MLXLLM/Models/Llama.swift` at revision
+// 0c50f71e1a3fcaaf09d1f93721a55e4f291bc442, patched to take precomputed input embeddings so
+// soft-prompt time-series embeddings go straight into the decoder. Upstream's building blocks
+// (`Attention`, `MLP`, `TransformerBlock`, `LlamaModelInner`) and the properties of
+// `LlamaConfiguration` are internal to MLXLLM, so only a copy can change the forward pass.
+//
+// `// PATCH(pockettslm):` marks the two functional changes:
+//  1. Embedding input: `EmbeddingLlamaModelInner` uses a given `inputEmbedding` in place of the
+//     token lookup, and `EmbeddingLlamaModel` exposes it through `EmbeddingPrimedLanguageModel`.
+//  2. RoPE: the rope type is read from `rope_scaling["rope_type"]` as well as `["type"]`, and
+//     integer values are accepted, so Llama 3.x configs get the llama3 frequency scaling that
+//     upstream silently skips.
+// Otherwise the code is upstream's: the types are renamed `EmbeddingLlama*` so they do not
+// collide with `MLXLLM.LlamaModel`, and upstream's unused `computeBaseFrequency` is left out.
+// `registerModelTypes()` at the end is PocketTSLM's own.
 
 import Foundation
 import MLX
@@ -35,7 +30,7 @@ import MLXLLM
 import MLXLMCommon
 import MLXNN
 
-// MARK: - Rotary embedding (verbatim from upstream, retyped to our config)
+// MARK: - Rotary embedding
 
 private class DynamicNTKScalingRoPE: Module {
     let dims: Int
@@ -73,10 +68,11 @@ private class DynamicNTKScalingRoPE: Module {
             return
         }
 
-        // MLXLMCommon's StringOrNumber decodes integers (e.g. `original_max_position_embeddings:
-        // 8192`) as `.int`, not `.float`. The upstream `case .float = …` pattern match therefore
-        // fails on that field, the whole guard fails, and it silently falls back to default RoPE
-        // — skipping llama3 scaling even when ropeType == "llama3". Accept both int and float.
+        // PATCH(pockettslm): MLXLMCommon's StringOrNumber decodes integers (e.g.
+        // `original_max_position_embeddings: 8192`) as `.int`, not `.float`. The upstream
+        // `case .float = …` pattern match therefore fails on that field, the whole guard fails,
+        // and it silently falls back to default RoPE — skipping llama3 scaling even when
+        // ropeType == "llama3". Accept both int and float.
         func number(_ value: StringOrNumber?) -> Float? {
             switch value {
             case .float(let f): return f
@@ -130,7 +126,7 @@ private class DynamicNTKScalingRoPE: Module {
     }
 }
 
-// MARK: - Attention / MLP / block (verbatim from upstream, retyped to our config)
+// MARK: - Attention, MLP and transformer block
 
 private class Attention: Module {
 
@@ -166,10 +162,10 @@ private class Attention: Module {
             base: args.ropeTheta,
             scale: 1.0,
             ropeType: {
-                // HF Llama-3.x configs key this as `rope_type` (e.g. "llama3"); older
-                // configs used `type`. Upstream mlx-swift only checks `type`, so for a
-                // Llama-3.2 `rope_scaling` it silently falls back to "default" and skips
-                // the llama3 frequency scaling — diverging from mlx_lm / transformers.
+                // PATCH(pockettslm): HF Llama-3.x configs key this as `rope_type` (e.g.
+                // "llama3"); older configs used `type`. Upstream mlx-swift only checks `type`,
+                // so for a Llama-3.2 `rope_scaling` it silently falls back to "default" and
+                // skips the llama3 frequency scaling — diverging from mlx_lm / transformers.
                 let ropeScalingType = args.ropeScaling?["rope_type"] ?? args.ropeScaling?["type"]
                 if case .string(let value) = ropeScalingType {
                     return value
@@ -258,7 +254,7 @@ private class TransformerBlock: Module {
     }
 }
 
-// MARK: - Inner model (MODIFIED: accepts inputEmbedding)
+// MARK: - Inner model
 
 private class EmbeddingLlamaModelInner: Module {
 
@@ -277,6 +273,7 @@ private class EmbeddingLlamaModelInner: Module {
         self.norm = RMSNorm(dimensions: args.hiddenSize, eps: args.rmsNormEps)
     }
 
+    // PATCH(pockettslm): an optional `inputEmbedding` replaces the token-embedding lookup.
     /// When `inputEmbedding` is supplied it is used directly as the hidden state,
     /// skipping the token-embedding lookup. Llama (unlike Gemma) does not scale
     /// the embeddings, so there is nothing else to reconcile here.
@@ -302,7 +299,7 @@ private class EmbeddingLlamaModelInner: Module {
     }
 }
 
-// MARK: - Outer model (MODIFIED: embedding-primed overload + protocol conformance)
+// MARK: - Outer model
 
 /// Drop-in for `MLXLLM.LlamaModel` whose forward pass can be primed with
 /// pre-computed embeddings. Parameter graph is identical to upstream `LlamaModel`
@@ -326,6 +323,7 @@ public class EmbeddingLlamaModel: Module, LLMModel, KVCacheDimensionProvider {
         }
     }
 
+    // PATCH(pockettslm): one forward pass for token and embedding inputs.
     private func forward(_ inputs: MLXArray?, cache: [KVCache]?, inputEmbedding: MLXArray?)
         -> MLXArray
     {
@@ -350,6 +348,7 @@ public class EmbeddingLlamaModel: Module, LLMModel, KVCacheDimensionProvider {
         }
     }
 
+    // PATCH(pockettslm): the token-embedding lookup, for building embedding inputs.
     /// Token-embedding lookup, exposed so callers can build interleaved
     /// soft-prompt sequences (text token embeddings + projected time-series
     /// embeddings) before priming the decoder via ``inputEmbedding``.
@@ -367,8 +366,9 @@ extension EmbeddingLlamaModel: LoRAModel {
     }
 }
 
-// MARK: - Embedding-primed decoding (app protocol from MLXEmbeddingGenerator)
+// MARK: - Embedding-primed decoding
 
+// PATCH(pockettslm): decoding primed with embeddings, as `MLXEmbeddingGenerator` drives it.
 extension EmbeddingLlamaModel: EmbeddingPrimedLanguageModel {
     public func makeCache() -> [KVCache] {
         newCache(parameters: nil)

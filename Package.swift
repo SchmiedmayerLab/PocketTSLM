@@ -51,6 +51,7 @@ let package = Package(
                 .product(name: "MLXNN", package: "mlx-swift"),
                 .product(name: "MLXRandom", package: "mlx-swift"),
                 .product(name: "MLXFast", package: "mlx-swift"),
+                .product(name: "MLXLLM", package: "mlx-swift-examples"),
                 .product(name: "Transformers", package: "swift-transformers")
             ],
             // The tests read their fixtures relative to their own source files.
