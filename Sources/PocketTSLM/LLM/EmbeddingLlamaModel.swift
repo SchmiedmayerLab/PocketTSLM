@@ -1,36 +1,54 @@
-//
-// This source file is part of the PocketTSLM open-source project
-//
-// SPDX-FileCopyrightText: 2024 Apple Inc.
-// SPDX-FileCopyrightText: 2026 Schmiedmayer Lab and the project authors (see CONTRIBUTORS.md)
-//
-// SPDX-License-Identifier: MIT
-//
-
-// A copy of mlx-swift-examples `Libraries/MLXLLM/Models/Llama.swift` at revision
-// 0c50f71e1a3fcaaf09d1f93721a55e4f291bc442, patched to take precomputed input embeddings so
-// soft-prompt time-series embeddings go straight into the decoder. Upstream's building blocks
-// (`Attention`, `MLP`, `TransformerBlock`, `LlamaModelInner`) and the properties of
-// `LlamaConfiguration` are internal to MLXLLM, so only a copy can change the forward pass.
-//
-// `// PATCH(pockettslm):` marks the two functional changes:
-//  1. Embedding input: `EmbeddingLlamaModelInner` uses a given `inputEmbedding` in place of the
-//     token lookup, and `EmbeddingLlamaModel` exposes it through `EmbeddingPrimedLanguageModel`.
-//  2. RoPE: the rope type is read from `rope_scaling["rope_type"]` as well as `["type"]`, and
-//     integer values are accepted, so Llama 3.x configs get the llama3 frequency scaling that
-//     upstream silently skips.
-// Otherwise the code is upstream's: the types are renamed `EmbeddingLlama*` so they do not
-// collide with `MLXLLM.LlamaModel`, and upstream's unused `computeBaseFrequency` is left out.
-// `registerModelTypes()` at the end is PocketTSLM's own.
+// Copyright © 2024 Apple Inc.
 
 import Foundation
 import MLX
-import MLXFast
-import MLXLLM
 import MLXLMCommon
 import MLXNN
+import Tokenizers
 
-// MARK: - Rotary embedding
+// port of https://github.com/ml-explore/mlx-examples/blob/main/llms/mlx_lm/models/llama.py
+
+func computeBaseFrequency(
+    base: Float, dims: Int, ropeType: String, ropeScaling: [String: StringOrNumber]?
+)
+    -> Float
+{
+    if ropeType != "llama3" {
+        return base
+    }
+
+    guard let ropeScaling = ropeScaling else {
+        return base
+    }
+
+    guard case .float(let factor) = ropeScaling["factor"],
+        case .float(let lowFreqFactor) = ropeScaling["low_freq_factor"] ?? .float(1.0),
+        case .float(let highFreqFactor) = ropeScaling["high_freq_factor"] ?? .float(4.0),
+        case .float(let oldContextLen) = ropeScaling["original_max_position_embeddings"]
+            ?? .float(8192)
+    else {
+        return base
+    }
+
+    let lowFreqWavelen = oldContextLen / lowFreqFactor
+    let highFreqWavelen = oldContextLen / highFreqFactor
+
+    let freqs = (0 ..< dims).compactMap { index -> Float? in
+        if index % 2 == 0 {
+            return pow(base, Float(index) / Float(dims))
+        }
+        return nil
+    }
+
+    let newBaseFreqs = freqs.map { freq -> Float in
+        let wavelen = 2 * .pi / freq
+        let smooth = max(
+            0, min(1, (wavelen - highFreqWavelen) / (lowFreqWavelen - highFreqWavelen)))
+        return freq * ((1 - smooth) * factor + smooth)
+    }
+
+    return newBaseFreqs.reduce(0, +) / Float(newBaseFreqs.count)
+}
 
 private class DynamicNTKScalingRoPE: Module {
     let dims: Int
@@ -68,29 +86,17 @@ private class DynamicNTKScalingRoPE: Module {
             return
         }
 
-        // PATCH(pockettslm): MLXLMCommon's StringOrNumber decodes integers (e.g.
-        // `original_max_position_embeddings: 8192`) as `.int`, not `.float`. The upstream
-        // `case .float = …` pattern match therefore fails on that field, the whole guard fails,
-        // and it silently falls back to default RoPE — skipping llama3 scaling even when
-        // ropeType == "llama3". Accept both int and float.
-        func number(_ value: StringOrNumber?) -> Float? {
-            switch value {
-            case .float(let f): return f
-            case .int(let i): return Float(i)
-            default: return nil
-            }
-        }
-
         guard let ropeScaling = ropeScaling,
-            let factor = number(ropeScaling["factor"]),
+            case .float(let factor) = ropeScaling["factor"],
+            case .float(let lowFreqFactor) = ropeScaling["low_freq_factor"] ?? .float(1.0),
+            case .float(let highFreqFactor) = ropeScaling["high_freq_factor"] ?? .float(4.0),
+            case .float(let oldContextLen) = ropeScaling["original_max_position_embeddings"]
+                ?? .float(8192),
             let base
         else {
             freqs = nil
             return
         }
-        let lowFreqFactor = number(ropeScaling["low_freq_factor"]) ?? 1.0
-        let highFreqFactor = number(ropeScaling["high_freq_factor"]) ?? 4.0
-        let oldContextLen = number(ropeScaling["original_max_position_embeddings"]) ?? 8192
 
         let lowFreqWavelen = oldContextLen / lowFreqFactor
         let highFreqWavelen = oldContextLen / highFreqFactor
@@ -126,11 +132,9 @@ private class DynamicNTKScalingRoPE: Module {
     }
 }
 
-// MARK: - Attention, MLP and transformer block
-
 private class Attention: Module {
 
-    let args: EmbeddingLlamaConfiguration
+    let args: LlamaConfiguration
     let scale: Float
 
     @ModuleInfo(key: "q_proj") var wq: Linear
@@ -140,7 +144,7 @@ private class Attention: Module {
 
     let rope: DynamicNTKScalingRoPE
 
-    init(_ args: EmbeddingLlamaConfiguration) {
+    init(_ args: LlamaConfiguration) {
         self.args = args
 
         let dim = args.hiddenSize
@@ -162,12 +166,7 @@ private class Attention: Module {
             base: args.ropeTheta,
             scale: 1.0,
             ropeType: {
-                // PATCH(pockettslm): HF Llama-3.x configs key this as `rope_type` (e.g.
-                // "llama3"); older configs used `type`. Upstream mlx-swift only checks `type`,
-                // so for a Llama-3.2 `rope_scaling` it silently falls back to "default" and
-                // skips the llama3 frequency scaling — diverging from mlx_lm / transformers.
-                let ropeScalingType = args.ropeScaling?["rope_type"] ?? args.ropeScaling?["type"]
-                if case .string(let value) = ropeScalingType {
+                if case .string(let value) = args.ropeScaling?["type"] {
                     return value
                 } else {
                     return "default"
@@ -176,8 +175,8 @@ private class Attention: Module {
             ropeScaling: args.ropeScaling)
     }
 
-    public func callAsFunction(
-        _ x: MLXArray, mask: MLXArray? = nil, cache: KVCache?
+    func callAsFunction(
+        _ x: MLXArray, mask: MLXFast.ScaledDotProductAttentionMaskMode, cache: KVCache?
     ) -> MLXArray {
         let (B, L) = (x.dim(0), x.dim(1))
 
@@ -193,14 +192,18 @@ private class Attention: Module {
         if let cache {
             queries = rope(queries, offset: cache.offset)
             keys = rope(keys, offset: cache.offset)
-            (keys, values) = cache.update(keys: keys, values: values)
         } else {
             queries = rope(queries)
             keys = rope(keys)
         }
 
-        let output = MLXFast.scaledDotProductAttention(
-            queries: queries, keys: keys, values: values, scale: scale, mask: mask
+        let output = attentionWithCacheUpdate(
+            queries: queries,
+            keys: keys,
+            values: values,
+            cache: cache,
+            scale: scale,
+            mask: mask
         )
         .transposed(0, 2, 1, 3)
         .reshaped(B, L, -1)
@@ -215,7 +218,7 @@ private class MLP: Module, UnaryLayer {
     @ModuleInfo(key: "down_proj") var down: Linear
     @ModuleInfo(key: "up_proj") var up: Linear
 
-    init(_ args: EmbeddingLlamaConfiguration) {
+    init(_ args: LlamaConfiguration) {
         self._gate.wrappedValue = Linear(args.hiddenSize, args.intermediateSize, bias: args.mlpBias)
         self._down.wrappedValue = Linear(args.intermediateSize, args.hiddenSize, bias: args.mlpBias)
         self._up.wrappedValue = Linear(args.hiddenSize, args.intermediateSize, bias: args.mlpBias)
@@ -234,7 +237,7 @@ private class TransformerBlock: Module {
     @ModuleInfo(key: "input_layernorm") var inputLayerNorm: RMSNorm
     @ModuleInfo(key: "post_attention_layernorm") var postAttentionLayerNorm: RMSNorm
 
-    init(_ args: EmbeddingLlamaConfiguration) {
+    init(_ args: LlamaConfiguration) {
         self._attention.wrappedValue = Attention(args)
         self._mlp.wrappedValue = MLP(args)
         self._inputLayerNorm.wrappedValue = RMSNorm(
@@ -243,8 +246,8 @@ private class TransformerBlock: Module {
             dimensions: args.hiddenSize, eps: args.rmsNormEps)
     }
 
-    public func callAsFunction(
-        _ x: MLXArray, mask: MLXArray? = nil, cache: KVCache?
+    func callAsFunction(
+        _ x: MLXArray, mask: MLXFast.ScaledDotProductAttentionMaskMode, cache: KVCache?
     ) -> MLXArray {
         var r = attention(inputLayerNorm(x), mask: mask, cache: cache)
         let h = x + r
@@ -254,16 +257,14 @@ private class TransformerBlock: Module {
     }
 }
 
-// MARK: - Inner model
-
-private class EmbeddingLlamaModelInner: Module {
+private class LlamaModelInner: Module {
 
     @ModuleInfo(key: "embed_tokens") var embedTokens: Embedding
 
     let layers: [TransformerBlock]
     let norm: RMSNorm
 
-    init(_ args: EmbeddingLlamaConfiguration) {
+    init(_ args: LlamaConfiguration) {
         precondition(args.vocabularySize > 0)
 
         self._embedTokens.wrappedValue = Embedding(
@@ -273,23 +274,10 @@ private class EmbeddingLlamaModelInner: Module {
         self.norm = RMSNorm(dimensions: args.hiddenSize, eps: args.rmsNormEps)
     }
 
-    // PATCH(pockettslm): an optional `inputEmbedding` replaces the token-embedding lookup.
-    /// When `inputEmbedding` is supplied it is used directly as the hidden state,
-    /// skipping the token-embedding lookup. Llama (unlike Gemma) does not scale
-    /// the embeddings, so there is nothing else to reconcile here.
-    public func callAsFunction(
-        _ inputs: MLXArray?, cache: [KVCache]? = nil, inputEmbedding: MLXArray? = nil
-    ) -> MLXArray {
-        var h: MLXArray
-        if let inputEmbedding {
-            h = inputEmbedding
-        } else if let inputs {
-            h = embedTokens(inputs)
-        } else {
-            fatalError("EmbeddingLlamaModelInner requires either inputs or inputEmbedding")
-        }
+    func callAsFunction(_ inputs: MLXArray, cache: [KVCache]? = nil) -> MLXArray {
+        var h = embedTokens(inputs)
 
-        let mask: MLXArray? = createAttentionMask(h: h, cache: cache)
+        let mask = createAttentionMask(h: h, cache: cache)
 
         for (i, layer) in layers.enumerated() {
             h = layer(h, mask: mask, cache: cache?[i])
@@ -299,46 +287,32 @@ private class EmbeddingLlamaModelInner: Module {
     }
 }
 
-// MARK: - Outer model
-
-/// Drop-in for `MLXLLM.LlamaModel` whose forward pass can be primed with
-/// pre-computed embeddings. Parameter graph is identical to upstream `LlamaModel`
-/// (same `@ModuleInfo` keys, same nesting), so the factory's weight loading,
-/// quantization, and `verify` all work unchanged.
-public class EmbeddingLlamaModel: Module, LLMModel, KVCacheDimensionProvider {
+/// Model for Llama and Mistral model types.
+public class LlamaModel: Module, LLMModel, KVCacheDimensionProvider {
 
     public let vocabularySize: Int
     public let kvHeads: [Int]
 
-    fileprivate let model: EmbeddingLlamaModelInner
+    fileprivate let model: LlamaModelInner
 
     @ModuleInfo(key: "lm_head") var lmHead: Linear?
 
-    init(_ args: EmbeddingLlamaConfiguration) {
+    public init(_ args: LlamaConfiguration) {
         self.vocabularySize = args.vocabularySize
         self.kvHeads = (0 ..< args.hiddenLayers).map { _ in args.kvHeads }
-        self.model = EmbeddingLlamaModelInner(args)
+        self.model = LlamaModelInner(args)
         if !args.tieWordEmbeddings {
             self._lmHead.wrappedValue = Linear(args.hiddenSize, args.vocabularySize, bias: false)
         }
     }
 
-    // PATCH(pockettslm): one forward pass for token and embedding inputs.
-    private func forward(_ inputs: MLXArray?, cache: [KVCache]?, inputEmbedding: MLXArray?)
-        -> MLXArray
-    {
-        let out = model(inputs, cache: cache, inputEmbedding: inputEmbedding)
+    public func callAsFunction(_ inputs: MLXArray, cache: [KVCache]?) -> MLXArray {
+        let out = model(inputs, cache: cache)
         if let lmHead {
             return lmHead(out)
         } else {
             return model.embedTokens.asLinear(out)
         }
-    }
-
-    /// `LLMModel` requirement — token-only path used by normal chat / `TokenIterator`.
-    /// Unchanged behaviour vs. upstream `LlamaModel`.
-    public func callAsFunction(_ inputs: MLXArray, cache: [KVCache]?) -> MLXArray {
-        forward(inputs, cache: cache, inputEmbedding: nil)
     }
 
     public func sanitize(weights: [String: MLXArray]) -> [String: MLXArray] {
@@ -348,42 +322,25 @@ public class EmbeddingLlamaModel: Module, LLMModel, KVCacheDimensionProvider {
         }
     }
 
-    // PATCH(pockettslm): the token-embedding lookup, for building embedding inputs.
-    /// Token-embedding lookup, exposed so callers can build interleaved
-    /// soft-prompt sequences (text token embeddings + projected time-series
-    /// embeddings) before priming the decoder via ``inputEmbedding``.
-    /// `ids` is an integer index array, e.g. shape `[B, T]`; result is `[B, T, hidden]`.
-    public func tokenEmbeddings(_ ids: MLXArray) -> MLXArray {
-        model.embedTokens(ids)
+    public func messageGenerator(tokenizer: any Tokenizer) -> any MessageGenerator {
+        // some models allow the system role and some do not -- this is enforced
+        // by the chat template (code).
+        do {
+            let probe = [
+                [
+                    "role": "system",
+                    "content": "test",
+                ]
+            ]
+            _ = try tokenizer.applyChatTemplate(messages: probe)
+            return DefaultMessageGenerator()
+        } catch {
+            return NoSystemMessageGenerator()
+        }
     }
 }
 
-// MARK: - LoRA
-
-extension EmbeddingLlamaModel: LoRAModel {
-    public func loraLinearLayers() -> LoRALinearLayers {
-        model.layers.map { ($0.attention, ["q_proj", "v_proj"]) }
-    }
-}
-
-// MARK: - Embedding-primed decoding
-
-// PATCH(pockettslm): decoding primed with embeddings, as `MLXEmbeddingGenerator` drives it.
-extension EmbeddingLlamaModel: EmbeddingPrimedLanguageModel {
-    public func makeCache() -> [KVCache] {
-        newCache(parameters: nil)
-    }
-
-    public func callAsFunction(
-        _ inputs: MLXArray?, cache: [KVCache], inputEmbedding: MLXArray?
-    ) throws -> MLXArray {
-        forward(inputs, cache: cache, inputEmbedding: inputEmbedding)
-    }
-}
-
-// MARK: - Configuration (verbatim copy of upstream LlamaConfiguration)
-
-struct EmbeddingLlamaConfiguration: Codable, Sendable {
+public struct LlamaConfiguration: Codable, Sendable {
 
     var hiddenSize: Int
     var hiddenLayers: Int
@@ -400,6 +357,30 @@ struct EmbeddingLlamaConfiguration: Codable, Sendable {
     var tieWordEmbeddings: Bool = true
     var attentionBias: Bool = false
     var mlpBias: Bool = false
+
+    public init(
+        hiddenSize: Int, hiddenLayers: Int, intermediateSize: Int, attentionHeads: Int,
+        headDimensions: Int? = nil, rmsNormEps: Float, vocabularySize: Int, kvHeads: Int,
+        maxPositionEmbeddings: Int? = nil, ropeTheta: Float = 10_000, ropeTraditional: Bool = false,
+        ropeScaling: [String: StringOrNumber]? = nil, tieWordEmbeddings: Bool = true,
+        attentionBias: Bool = false, mlpBias: Bool = false
+    ) {
+        self.hiddenSize = hiddenSize
+        self.hiddenLayers = hiddenLayers
+        self.intermediateSize = intermediateSize
+        self.attentionHeads = attentionHeads
+        self.headDimensions = headDimensions
+        self.rmsNormEps = rmsNormEps
+        self.vocabularySize = vocabularySize
+        self.kvHeads = kvHeads
+        self.maxPositionEmbeddings = maxPositionEmbeddings
+        self.ropeTheta = ropeTheta
+        self.ropeTraditional = ropeTraditional
+        self.ropeScaling = ropeScaling
+        self.tieWordEmbeddings = tieWordEmbeddings
+        self.attentionBias = attentionBias
+        self.mlpBias = mlpBias
+    }
 
     var resolvedHeadDimensions: Int {
         headDimensions ?? (hiddenSize / attentionHeads)
@@ -423,7 +404,7 @@ struct EmbeddingLlamaConfiguration: Codable, Sendable {
         case mlpBias = "mlp_bias"
     }
 
-    init(from decoder: Decoder) throws {
+    public init(from decoder: Swift.Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
 
         hiddenSize = try container.decode(Int.self, forKey: .hiddenSize)
@@ -486,22 +467,10 @@ struct EmbeddingLlamaConfiguration: Codable, Sendable {
     }
 }
 
-// MARK: - Factory registration
+// MARK: - LoRA
 
-/// Overrides the `"llama"` (and `"mistral"`) entries in the shared MLX model-type
-/// registry so `LLMModelFactory.shared.loadContainer(...)` instantiates
-/// ``EmbeddingLlamaModel`` instead of the stock `LlamaModel`, which cannot take
-/// soft-prompt embeddings.
-///
-/// Call once, *before* the first model load. The closure mirrors the upstream private
-/// `create(_:_:)` helper: the URL it receives is the `config.json` file itself (not the
-/// directory), and it only builds the bare model — the factory loads/quantizes weights afterwards.
-public func registerModelTypes() {
-    let creator: @Sendable (URL) throws -> any LanguageModel = { url in
-        let config = try JSONDecoder().decode(
-            EmbeddingLlamaConfiguration.self, from: Data(contentsOf: url))
-        return EmbeddingLlamaModel(config)
+extension LlamaModel: LoRAModel {
+    public func loraLinearLayers() -> LoRALinearLayers {
+        model.layers.map { ($0.attention, ["q_proj", "v_proj"]) }
     }
-    LLMModelFactory.shared.typeRegistry.registerModelType("llama", creator: creator)
-    LLMModelFactory.shared.typeRegistry.registerModelType("mistral", creator: creator)
 }
