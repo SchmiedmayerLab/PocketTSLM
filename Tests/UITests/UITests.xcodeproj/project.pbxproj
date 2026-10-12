@@ -10,10 +10,9 @@
 		E890B39C3FD4722BC63E9A2A /* Checkpoints in Resources */ = {isa = PBXBuildFile; fileRef = ADCD8811DD06FB3E51A084FD /* Checkpoints */; };
 		D21E0A9F15D7B9CD14B75BDD /* EvalData in Resources */ = {isa = PBXBuildFile; fileRef = 48FA15F983059402B27F5182 /* EvalData */; };
 		B3B746EE329C2EF90CAB7C8B /* PocketTSLM in Frameworks */ = {isa = PBXBuildFile; productRef = DF65CA532F33F98BD72E186F /* PocketTSLM */; };
+		A7C3E1F02F4A6B0000D1E001 /* Spezi in Frameworks */ = {isa = PBXBuildFile; productRef = A7C3E1F12F4A6B0000D1E001 /* Spezi */; };
 		4459F7C12D2DE2C500F0190D /* SpeziChat in Frameworks */ = {isa = PBXBuildFile; productRef = 4459F7C02D2DE2C500F0190D /* SpeziChat */; };
-		4459F7C52D2DE31600F0190D /* SpeziOnboarding in Frameworks */ = {isa = PBXBuildFile; productRef = 4459F7C42D2DE31600F0190D /* SpeziOnboarding */; };
 		BB95E3232E36E9FD0054FA4C /* SpeziHealthKit in Frameworks */ = {isa = PBXBuildFile; productRef = BB95E3222E36E9FD0054FA4C /* SpeziHealthKit */; };
-		BB95E3602E396CB70054FA4C /* SpeziHealthKitUI in Frameworks */ = {isa = PBXBuildFile; productRef = BB95E35F2E396CB70054FA4C /* SpeziHealthKitUI */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -56,8 +55,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				B3B746EE329C2EF90CAB7C8B /* PocketTSLM in Frameworks */,
-				4459F7C52D2DE31600F0190D /* SpeziOnboarding in Frameworks */,
-				BB95E3602E396CB70054FA4C /* SpeziHealthKitUI in Frameworks */,
+				A7C3E1F02F4A6B0000D1E001 /* Spezi in Frameworks */,
 				4459F7C12D2DE2C500F0190D /* SpeziChat in Frameworks */,
 				BB95E3232E36E9FD0054FA4C /* SpeziHealthKit in Frameworks */,
 			);
@@ -130,10 +128,9 @@
 			name = TestApp;
 			packageProductDependencies = (
 				DF65CA532F33F98BD72E186F /* PocketTSLM */,
+				A7C3E1F12F4A6B0000D1E001 /* Spezi */,
 				4459F7C02D2DE2C500F0190D /* SpeziChat */,
-				4459F7C42D2DE31600F0190D /* SpeziOnboarding */,
 				BB95E3222E36E9FD0054FA4C /* SpeziHealthKit */,
-				BB95E35F2E396CB70054FA4C /* SpeziHealthKitUI */,
 			);
 			productName = TestApp;
 			productReference = 440071A82CFD092300DC7C5A /* TestApp.app */;
@@ -213,9 +210,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				1D9C31CAE6E7A4BE19128C89 /* XCLocalSwiftPackageReference "../.." */,
-				4459F7BF2D2DE2C500F0190D /* XCRemoteSwiftPackageReference "SpeziChat" */,
-				4459F7C22D2DE2E300F0190D /* XCRemoteSwiftPackageReference "SpeziOnboarding" */,
-				BBF6943D2E134DB3000C570C /* XCRemoteSwiftPackageReference "SpeziHealthKit" */,
+				BBF6943D2E134DB3000C570C /* XCLocalSwiftPackageReference "Grove-0.1.7-patched" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 440071A92CFD092300DC7C5A /* Products */;
@@ -616,6 +611,10 @@
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
+		BBF6943D2E134DB3000C570C /* XCLocalSwiftPackageReference "Grove-0.1.7-patched" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = "../../../Grove-0.1.7-patched";
+		};
 		1D9C31CAE6E7A4BE19128C89 /* XCLocalSwiftPackageReference "../.." */ = {
 			isa = XCLocalSwiftPackageReference;
 			relativePath = ../..;
@@ -623,30 +622,6 @@
 /* End XCLocalSwiftPackageReference section */
 
 /* Begin XCRemoteSwiftPackageReference section */
-		4459F7BF2D2DE2C500F0190D /* XCRemoteSwiftPackageReference "SpeziChat" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/StanfordSpezi/SpeziChat";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 0.2.4;
-			};
-		};
-		4459F7C22D2DE2E300F0190D /* XCRemoteSwiftPackageReference "SpeziOnboarding" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/StanfordSpezi/SpeziOnboarding.git";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 1.2.2;
-			};
-		};
-		BBF6943D2E134DB3000C570C /* XCRemoteSwiftPackageReference "SpeziHealthKit" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/StanfordSpezi/SpeziHealthKit";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 1.3.2;
-			};
-		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -655,25 +630,20 @@
 			package = 1D9C31CAE6E7A4BE19128C89 /* XCLocalSwiftPackageReference "../.." */;
 			productName = PocketTSLM;
 		};
+		A7C3E1F12F4A6B0000D1E001 /* Spezi */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = BBF6943D2E134DB3000C570C /* XCLocalSwiftPackageReference "Grove-0.1.7-patched" */;
+			productName = Spezi;
+		};
 		4459F7C02D2DE2C500F0190D /* SpeziChat */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 4459F7BF2D2DE2C500F0190D /* XCRemoteSwiftPackageReference "SpeziChat" */;
+			package = BBF6943D2E134DB3000C570C /* XCLocalSwiftPackageReference "Grove-0.1.7-patched" */;
 			productName = SpeziChat;
-		};
-		4459F7C42D2DE31600F0190D /* SpeziOnboarding */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 4459F7C22D2DE2E300F0190D /* XCRemoteSwiftPackageReference "SpeziOnboarding" */;
-			productName = SpeziOnboarding;
 		};
 		BB95E3222E36E9FD0054FA4C /* SpeziHealthKit */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = BBF6943D2E134DB3000C570C /* XCRemoteSwiftPackageReference "SpeziHealthKit" */;
+			package = BBF6943D2E134DB3000C570C /* XCLocalSwiftPackageReference "Grove-0.1.7-patched" */;
 			productName = SpeziHealthKit;
-		};
-		BB95E35F2E396CB70054FA4C /* SpeziHealthKitUI */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = BBF6943D2E134DB3000C570C /* XCRemoteSwiftPackageReference "SpeziHealthKit" */;
-			productName = SpeziHealthKitUI;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

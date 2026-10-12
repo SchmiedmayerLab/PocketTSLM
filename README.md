@@ -28,6 +28,11 @@ The repository contains code only. Model weights and evaluation data are restore
 ## Requirements
 
 - macOS with Xcode 26 and an Apple-silicon iPhone, for the latency and memory numbers. MLX needs a real Metal GPU; in the simulator the app falls back to the CPU, which is only good for diagnostics.
+- For the demo app, a patched [Grove](https://github.com/SchmiedmayerLab/Grove) 0.1.7 next to this repository, at `../Grove-0.1.7-patched`. Grove 0.1.x's `Package.swift` fails to type-check in time on some Macs; the patch splits one `targets +=` statement into five and changes nothing else. Until a fixed Grove release exists:
+  ```
+  git clone --branch 0.1.7 https://github.com/SchmiedmayerLab/Grove.git ../Grove-0.1.7-patched
+  ```
+  then put a `]` and a new `targets += [` before each of the four last targets in the `#if canImport(Darwin)` block of its `Package.swift`.
 - Access to [`meta-llama/Llama-3.2-1B`](https://huggingface.co/meta-llama/Llama-3.2-1B), which is gated. The app downloads it on first launch, at the revision the checkpoints pin.
 
 ## Using the package
