@@ -16,11 +16,11 @@ let package = Package(
         .library(name: "PocketTSLM", targets: ["PocketTSLM"])
     ],
     dependencies: [
-        // Exactly the MLX stack the demo app resolves through SpeziLLM `feature/add-tools`, because an app
-        // links one MLX version. The revision pin only works while apps add this package by local path.
-        .package(url: "https://github.com/ml-explore/mlx-swift", exact: "0.21.3"),
-        .package(url: "https://github.com/ml-explore/mlx-swift-examples", revision: "0c50f71e1a3fcaaf09d1f93721a55e4f291bc442"),
-        .package(url: "https://github.com/huggingface/swift-transformers", exact: "0.1.20")
+        // Grove's MLX stack, because an app links one MLX version. mlx-swift-examples releases after
+        // 2.29 may lack MLXLLM, which moved to mlx-swift-lm.
+        .package(url: "https://github.com/ml-explore/mlx-swift", .upToNextMinor(from: "0.29.1")),
+        .package(url: "https://github.com/ml-explore/mlx-swift-examples", .upToNextMinor(from: "2.29.1")),
+        .package(url: "https://github.com/huggingface/swift-transformers", from: "1.0.0")
     ],
     targets: [
         .target(
