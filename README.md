@@ -57,7 +57,7 @@ let answer = try await model.generate(TSLMInput(
 ))
 ```
 
-The checkpoint's `config.json` holds the task's prompt templates, whose placeholders `context` fills. A second checkpoint on the same base model swaps its LoRA adapter in. The package pins mlx-swift 0.21.3, mlx-swift-examples at revision `0c50f71e` and swift-transformers 0.1.20; because of the revision pin, apps add it by local path for now.
+The checkpoint's `config.json` holds the task's prompt templates, whose placeholders `context` fills. A second checkpoint on the same base model swaps its LoRA adapter in. The package uses Grove's MLX stack, mlx-swift 0.29.1, mlx-swift-examples 2.29.1 and swift-transformers 1.0, so it links into Grove apps. Until the repository is published, apps add it by local path.
 
 ## Model files and data
 
