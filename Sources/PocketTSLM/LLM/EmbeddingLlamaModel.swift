@@ -1,7 +1,22 @@
-// Copyright © 2024 Apple Inc.
+//
+// This source file is part of the PocketTSLM open-source project
+//
+// SPDX-FileCopyrightText: 2024 Apple Inc.
+// SPDX-FileCopyrightText: 2026 Schmiedmayer Lab and the project authors (see CONTRIBUTORS.md)
+//
+// SPDX-License-Identifier: MIT
+//
+
+// A copy of mlx-swift-examples `Libraries/MLXLLM/Models/Llama.swift` at 2.29.1
+// (9bff95ca5f0b9e8c021acc4d71a2bbe4a7441631). Upstream's building blocks (`Attention`, `MLP`,
+// `TransformerBlock`, `LlamaModelInner`) are private, so only a copy can change the forward pass.
+// The code is upstream's, with the types renamed `EmbeddingLlama*` so they do not collide with
+// `MLXLLM.LlamaModel`, apart from the functional changes that `// PATCH(pockettslm):` marks.
+// `registerModelTypes()` at the end is PocketTSLM's own.
 
 import Foundation
 import MLX
+import MLXLLM
 import MLXLMCommon
 import MLXNN
 import Tokenizers
@@ -134,7 +149,7 @@ private class DynamicNTKScalingRoPE: Module {
 
 private class Attention: Module {
 
-    let args: LlamaConfiguration
+    let args: EmbeddingLlamaConfiguration
     let scale: Float
 
     @ModuleInfo(key: "q_proj") var wq: Linear
@@ -144,7 +159,7 @@ private class Attention: Module {
 
     let rope: DynamicNTKScalingRoPE
 
-    init(_ args: LlamaConfiguration) {
+    init(_ args: EmbeddingLlamaConfiguration) {
         self.args = args
 
         let dim = args.hiddenSize
@@ -218,7 +233,7 @@ private class MLP: Module, UnaryLayer {
     @ModuleInfo(key: "down_proj") var down: Linear
     @ModuleInfo(key: "up_proj") var up: Linear
 
-    init(_ args: LlamaConfiguration) {
+    init(_ args: EmbeddingLlamaConfiguration) {
         self._gate.wrappedValue = Linear(args.hiddenSize, args.intermediateSize, bias: args.mlpBias)
         self._down.wrappedValue = Linear(args.intermediateSize, args.hiddenSize, bias: args.mlpBias)
         self._up.wrappedValue = Linear(args.hiddenSize, args.intermediateSize, bias: args.mlpBias)
@@ -237,7 +252,7 @@ private class TransformerBlock: Module {
     @ModuleInfo(key: "input_layernorm") var inputLayerNorm: RMSNorm
     @ModuleInfo(key: "post_attention_layernorm") var postAttentionLayerNorm: RMSNorm
 
-    init(_ args: LlamaConfiguration) {
+    init(_ args: EmbeddingLlamaConfiguration) {
         self._attention.wrappedValue = Attention(args)
         self._mlp.wrappedValue = MLP(args)
         self._inputLayerNorm.wrappedValue = RMSNorm(
@@ -257,14 +272,14 @@ private class TransformerBlock: Module {
     }
 }
 
-private class LlamaModelInner: Module {
+private class EmbeddingLlamaModelInner: Module {
 
     @ModuleInfo(key: "embed_tokens") var embedTokens: Embedding
 
     let layers: [TransformerBlock]
     let norm: RMSNorm
 
-    init(_ args: LlamaConfiguration) {
+    init(_ args: EmbeddingLlamaConfiguration) {
         precondition(args.vocabularySize > 0)
 
         self._embedTokens.wrappedValue = Embedding(
@@ -288,19 +303,19 @@ private class LlamaModelInner: Module {
 }
 
 /// Model for Llama and Mistral model types.
-public class LlamaModel: Module, LLMModel, KVCacheDimensionProvider {
+public class EmbeddingLlamaModel: Module, LLMModel, KVCacheDimensionProvider {
 
     public let vocabularySize: Int
     public let kvHeads: [Int]
 
-    fileprivate let model: LlamaModelInner
+    fileprivate let model: EmbeddingLlamaModelInner
 
     @ModuleInfo(key: "lm_head") var lmHead: Linear?
 
-    public init(_ args: LlamaConfiguration) {
+    public init(_ args: EmbeddingLlamaConfiguration) {
         self.vocabularySize = args.vocabularySize
         self.kvHeads = (0 ..< args.hiddenLayers).map { _ in args.kvHeads }
-        self.model = LlamaModelInner(args)
+        self.model = EmbeddingLlamaModelInner(args)
         if !args.tieWordEmbeddings {
             self._lmHead.wrappedValue = Linear(args.hiddenSize, args.vocabularySize, bias: false)
         }
@@ -340,7 +355,7 @@ public class LlamaModel: Module, LLMModel, KVCacheDimensionProvider {
     }
 }
 
-public struct LlamaConfiguration: Codable, Sendable {
+public struct EmbeddingLlamaConfiguration: Codable, Sendable {
 
     var hiddenSize: Int
     var hiddenLayers: Int
@@ -469,8 +484,28 @@ public struct LlamaConfiguration: Codable, Sendable {
 
 // MARK: - LoRA
 
-extension LlamaModel: LoRAModel {
+extension EmbeddingLlamaModel: LoRAModel {
     public func loraLinearLayers() -> LoRALinearLayers {
         model.layers.map { ($0.attention, ["q_proj", "v_proj"]) }
     }
+}
+
+// MARK: - Factory registration
+
+/// Overrides the `"llama"` (and `"mistral"`) entries in the shared MLX model-type
+/// registry so `LLMModelFactory.shared.loadContainer(...)` instantiates
+/// ``EmbeddingLlamaModel`` instead of the stock `LlamaModel`, which cannot take
+/// soft-prompt embeddings.
+///
+/// Call once, *before* the first model load. The closure mirrors the upstream private
+/// `create(_:_:)` helper: the URL it receives is the `config.json` file itself (not the
+/// directory), and it only builds the bare model — the factory loads/quantizes weights afterwards.
+public func registerModelTypes() {
+    let creator: @Sendable (URL) throws -> any LanguageModel = { url in
+        let config = try JSONDecoder().decode(
+            EmbeddingLlamaConfiguration.self, from: Data(contentsOf: url))
+        return EmbeddingLlamaModel(config)
+    }
+    LLMModelFactory.shared.typeRegistry.registerModelType("llama", creator: creator)
+    LLMModelFactory.shared.typeRegistry.registerModelType("mistral", creator: creator)
 }
