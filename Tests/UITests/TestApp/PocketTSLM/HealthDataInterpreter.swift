@@ -276,8 +276,6 @@ class HealthDataInterpreter: DefaultInitializable, Module, EnvironmentAccessible
             return
         }
 
-        try stageOpenTSLMLoRACheckpointIfNeeded()
-
         if hasRequiredModelFiles(in: destinationURL, fileManager: fileManager) {
             logger.info("stageLocalModelIfNeeded: destination already has all required files (\(self.requiredModelFiles.joined(separator: ", "), privacy: .public)) — skipping copy")
             try removeNonBaseWeightSafetensorsFromModelDirectory()
@@ -311,60 +309,6 @@ class HealthDataInterpreter: DefaultInitializable, Module, EnvironmentAccessible
             logger.error("stageLocalModelIfNeeded: failed: \(error.localizedDescription, privacy: .public)")
             throw error
         }
-    }
-
-    /// Stage LoRA under ``Constants/openTSLMDocumentsDirectory`` — never into the Llama HF folder (MLX would load it as base weights).
-    private func stageOpenTSLMLoRACheckpointIfNeeded() throws {
-        let fileManager = FileManager.default
-        let destinationDirectory = Constants.openTSLMDocumentsDirectory
-        let destinationLoRA = destinationDirectory
-            .appendingPathComponent("\(Constants.openTSLMLoRACheckpointName).safetensors")
-
-        if fileManager.fileExists(atPath: destinationLoRA.path) {
-            return
-        }
-
-        guard let sourceLoRA = resolveLoRACheckpointSource() else {
-            if Constants.requireLoRACheckpoint {
-                throw NSError(
-                    domain: "HealthDataInterpreter",
-                    code: 10,
-                    userInfo: [NSLocalizedDescriptionKey: "HEALTHYLLM_REQUIRE_LORA=1 but no LoRA checkpoint was found. Set HEALTHYLLM_OPEN_TSLM_LORA_CHECKPOINT or bundle \(Constants.openTSLMLoRACheckpointName).safetensors under OpenTSLM/."]
-                )
-            }
-            return
-        }
-
-        try fileManager.createDirectory(at: destinationDirectory, withIntermediateDirectories: true)
-        try fileManager.copyItem(at: sourceLoRA, to: destinationLoRA)
-        logger.info("LoRA checkpoint staged at \(destinationLoRA.path, privacy: .public)")
-    }
-
-    private func resolveLoRACheckpointSource() -> URL? {
-        let fileManager = FileManager.default
-        var candidates: [URL] = []
-
-        if !Constants.openTSLMLoRACheckpointPath.isEmpty {
-            candidates.append(URL(fileURLWithPath: Constants.openTSLMLoRACheckpointPath))
-        }
-
-        if let bundled = Bundle.main.url(
-            forResource: Constants.openTSLMLoRACheckpointName,
-            withExtension: "safetensors",
-            subdirectory: Constants.openTSLMBundleSubdirectory
-        ) {
-            candidates.append(bundled)
-        }
-
-        if let bundleRoot = Bundle.main.resourceURL {
-            candidates.append(
-                bundleRoot
-                    .appendingPathComponent(Constants.openTSLMBundleSubdirectory, isDirectory: true)
-                    .appendingPathComponent("\(Constants.openTSLMLoRACheckpointName).safetensors")
-            )
-        }
-
-        return candidates.first { fileManager.fileExists(atPath: $0.path) }
     }
 
     /// Remove adapter / OpenTSLM safetensors from the Llama model directory so ``loadContainer`` only sees base weights.
@@ -507,29 +451,6 @@ class HealthDataInterpreter: DefaultInitializable, Module, EnvironmentAccessible
 
         return url
     }
-
-    private func copyDirectoryContents(from sourceURL: URL, to destinationURL: URL) throws {
-        let fileManager = FileManager.default
-        let items = try fileManager.contentsOfDirectory(at: sourceURL, includingPropertiesForKeys: nil)
-
-        for item in items {
-            let destinationItem = destinationURL.appendingPathComponent(item.lastPathComponent)
-            var isDirectory: ObjCBool = false
-            let exists = fileManager.fileExists(atPath: item.path, isDirectory: &isDirectory)
-
-            guard exists else {
-                continue
-            }
-
-            if isDirectory.boolValue {
-                try fileManager.createDirectory(at: destinationItem, withIntermediateDirectories: true)
-                try copyDirectoryContents(from: item, to: destinationItem)
-            } else if !fileManager.fileExists(atPath: destinationItem.path) {
-                try fileManager.copyItem(at: item, to: destinationItem)
-            }
-        }
-    }
-
 
     /// EEG/sleep single-sample inference — returns the constructed prompt and the model's
     /// generated answer for the chat transcript.
