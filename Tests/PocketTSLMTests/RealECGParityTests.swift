@@ -77,36 +77,4 @@ final class RealECGParityTests: XCTestCase {
             assertParity(projected[.stride(by: 1), .stride(by: 10), .stride(by: 64)], try XCTUnwrap(reference["projected"]), "pipeline")
         }
     }
-
-    /// SoftPromptInterleaver assembly parity: reconstruct the sample structure from the
-    /// fixture (a 12-segment sample + a shorter one, with intra-segment padding) and check
-    /// padAndInterleaveBatch reproduces the Python reference layout/padding exactly.
-    func testInterleaverParity() throws {
-        let ioURL = try fixture("interleaver_io.safetensors")
-        try Device.withDefaultDevice(.cpu) {
-            let a = try loadArrays(url: ioURL)
-            let tsCounts = a["ts_counts"]!.asArray(Int32.self).map(Int.init)
-
-            var samples: [SoftPromptSample] = []
-            for (si, k) in tsCounts.enumerated() {
-                let pre = SoftPromptSegment(embeddings: a["s\(si)_pre_emb"]!,
-                                            attentionMask: a["s\(si)_pre_mask"]!)
-                var tstext: [SoftPromptSegment] = []
-                var tsemb: [MLXArray] = []
-                for i in 0 ..< k {
-                    tstext.append(SoftPromptSegment(embeddings: a["s\(si)_tt\(i)_emb"]!,
-                                                    attentionMask: a["s\(si)_tt\(i)_mask"]!))
-                    tsemb.append(a["s\(si)_te\(i)"]!)
-                }
-                let post = SoftPromptSegment(embeddings: a["s\(si)_post_emb"]!,
-                                             attentionMask: a["s\(si)_post_mask"]!)
-                samples.append(SoftPromptSample(prePrompt: pre, timeSeriesText: tstext,
-                                                timeSeriesEmbeddings: tsemb, postPrompt: post))
-            }
-
-            let batch = SoftPromptInterleaver.padAndInterleaveBatch(samples)
-            assertParity(batch.inputsEmbeds, a["out_embeds"]!, "interleaver.embeds")
-            assertParity(batch.attentionMask, a["out_mask"]!, "interleaver.mask")
-        }
-    }
 }

@@ -113,7 +113,7 @@ pockettslm-cli eval --base <Llama-3.2-1B folder> --checkpoint Tests/UITests/Chec
 
 ## Reproducing the paper
 
-**Parity tests (§3).** Component-level Python↔Swift parity (encoder, projector, fused pipeline, soft-prompt interleaver, RoPE, tokenizer, text serializer) against committed fixtures, no Python needed. Run them through Xcode, which compiles MLX's Metal shaders; `swift test` on the command line cannot:
+**Parity tests (§3).** Component-level Python↔Swift parity (encoder, projector, fused pipeline, RoPE, tokenizer, text serializer) against committed fixtures, no Python needed. Run them through Xcode, which compiles MLX's Metal shaders; `swift test` on the command line cannot:
 
 ```bash
 xcodebuild test -scheme PocketTSLM-Package -destination 'platform=macOS,arch=arm64,name=My Mac'

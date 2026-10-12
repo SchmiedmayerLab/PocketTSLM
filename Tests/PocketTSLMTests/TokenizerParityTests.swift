@@ -4,7 +4,7 @@ import Tokenizers
 
 /// Python↔Swift tokenizer parity. The app embeds each prompt segment with
 /// `tokenizer.encode(text:, addSpecialTokens: true)` (swift-transformers, via MLXLLM).
-/// Encoder/projector/interleaver all matched the reference, so a divergence from the very
+/// Encoder and projector matched the reference, so a divergence from the very
 /// first generated token would most plausibly come from the text tokens (IDs / BOS).
 ///
 /// `tokenizer_ref.json` holds the HF (Python) token IDs for each real ECG prompt segment.

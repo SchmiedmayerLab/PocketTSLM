@@ -55,7 +55,7 @@ let package = Package(
                 .product(name: "Transformers", package: "swift-transformers")
             ],
             // The tests read their fixtures relative to their own source files.
-            exclude: ["Fixtures", "generate_interleaver_fixtures.py", "generate_parity_fixtures.py"]
+            exclude: ["Fixtures", "generate_parity_fixtures.py"]
         )
     ],
     swiftLanguageModes: [.v5]
