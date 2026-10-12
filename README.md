@@ -37,6 +37,21 @@ The repository contains code only. Model weights and evaluation data are restore
 
 ## Using the package
 
+Add the package, and mlx-swift-examples for `LLMModelFactory`, to your target. Until the repository is published, add PocketTSLM by local path; SwiftPM then names it after its folder:
+
+```swift
+dependencies: [
+    .package(path: "../PocketTSLM"),
+    .package(url: "https://github.com/ml-explore/mlx-swift-examples", .upToNextMinor(from: "2.29.1"))
+],
+// in the target:
+dependencies: [
+    .product(name: "PocketTSLM", package: "PocketTSLM"),
+    .product(name: "MLXLLM", package: "mlx-swift-examples"),
+    .product(name: "MLXLMCommon", package: "mlx-swift-examples")
+]
+```
+
 Register the patched Llama before the first model load, load the base model and a checkpoint, and answer an input:
 
 ```swift
@@ -57,7 +72,7 @@ let answer = try await model.generate(TSLMInput(
 ))
 ```
 
-The checkpoint's `config.json` holds the task's prompt templates, whose placeholders `context` fills. A second checkpoint on the same base model swaps its LoRA adapter in. The package uses Grove's MLX stack, mlx-swift 0.29.1, mlx-swift-examples 2.29.1 and swift-transformers 1.0, so it links into Grove apps. Until the repository is published, apps add it by local path.
+The checkpoint's `config.json` holds the task's prompt templates, whose placeholders `context` fills. A second checkpoint on the same base model swaps its LoRA adapter in. The package uses Grove's MLX stack, mlx-swift 0.29.1, mlx-swift-examples 2.29.1 and swift-transformers 1.0, so it links into Grove apps.
 
 ## Model files and data
 
@@ -86,7 +101,7 @@ The task sheet offers single-sample runs (*EEG sample*, *ECG sample*, *My Watch 
 
 ## Evaluations on the Mac
 
-`pockettslm-cli eval` runs a checkpoint's accuracy evaluation as the app does and writes the same report JSON. Build it with Xcode, which compiles MLX's Metal shaders, and run the binary from the build folder:
+`pockettslm-cli eval` runs a checkpoint's accuracy evaluation as the app does and writes the same report JSON. Build it with Xcode, which compiles MLX's Metal shaders, and run the binary from the build folder, `<DerivedData>/Build/Products/Debug/pockettslm-cli`:
 
 ```bash
 xcodebuild -scheme pockettslm-cli -destination 'platform=macOS,arch=arm64,name=My Mac' build
@@ -94,7 +109,7 @@ pockettslm-cli eval --base <Llama-3.2-1B folder> --checkpoint Tests/UITests/Chec
     --data Tests/UITests/EvalData --output opentslm_sleep_eval.json
 ```
 
-`baselines/macos-mlx-0.21.3/` holds the outputs of both evaluations, and its README shows how to compare a run with them.
+`baselines/macos-mlx-0.29.1/` holds the outputs of both evaluations on the current MLX stack, which a run must reproduce exactly. `baselines/macos-mlx-0.21.3/` holds them on the paper's stack, and its README shows how to compare a run with them.
 
 ## Reproducing the paper
 
