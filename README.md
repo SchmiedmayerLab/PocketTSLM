@@ -124,7 +124,7 @@ xcodebuild test -scheme PocketTSLM-Package -destination 'platform=macOS,arch=arm
 - The real-weight ECG tests run the converted ECG checkpoint and only run with `POCKETTSLM_INTEGRATION=1`, which `xcodebuild` passes on as `TEST_RUNNER_POCKETTSLM_INTEGRATION=1`. They take the checkpoint from `POCKETTSLM_ECG_CHECKPOINT`, else from `Tests/UITests/Checkpoints/`, else from Hugging Face.
 - `Tests/PocketTSLMTests/generate_parity_fixtures.py` regenerates the encoder, projector and real-weight fixtures from the MLX Python reference.
 
-Tolerances are max 1e-4 / mean 1e-5 (1e-3 for RoPE). The greedy decode itself runs in the app (`OpenTSLMLLM`); the tests cover the pipeline that feeds it.
+Tolerances are max 1e-4 / mean 1e-5 (1e-3 for RoPE). The tests cover the pipeline that feeds the greedy decode (`Sources/PocketTSLM/LLM/Generation.swift`); the baselines check the decode end to end.
 
 **Benchmark (§4).** Run the app on an iPhone and tap **EEG bench** / **ECG bench**: each sweeps time-series tokens, time-to-first-token, and peak memory, and writes `opentslm_context_economics[_ecg].json` to the app's Documents folder. Our reference outputs (iPhone Air, iOS 26.4.1) are in `benchmark-results/`.
 

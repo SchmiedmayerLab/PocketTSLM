@@ -47,7 +47,7 @@ class OpenTSLMInferenceService: DefaultInitializable, Module, EnvironmentAccessi
     }
 
     private func interaction(with model: TSLM, on prompt: TSLMPrompt) async throws -> SampleInteraction {
-        let response = try await model.generate(prompt, maxTokens: 200)
+        let response = try await model.generate(prompt, maxTokens: 200).text
         return SampleInteraction(prompt: prompt.text, response: response)
     }
 
@@ -366,7 +366,7 @@ class OpenTSLMInferenceService: DefaultInitializable, Module, EnvironmentAccessi
     /// ECG variant of the §4 benchmark: the 12-lead ECG-QA CoT sample swept over per-lead
     /// length, same soft-prompt vs. text-serialized comparison on the ECG-tuned backbone.
     /// 12 leads use ~12× the positions of the 1-lead sleep case, so the soft-prompt arm
-    /// relies on ``MLXEmbeddingGenerator``'s chunked prefill to avoid OOM at longer lengths.
+    /// relies on the package's chunked prefill to avoid OOM at longer lengths.
     func runContextEconomicsBenchmarkECG(
         sampleIndex: Int = 0,
         lengths: [Int] = [100, 250, 500, 1000],

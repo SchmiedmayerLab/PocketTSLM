@@ -91,7 +91,7 @@ public enum Evaluation {
             let prompt = try model.checkpoint.prompt(for: sample.input)
             seriesLength = prompt.series.first?.count ?? 0
             let start = DispatchTime.now()
-            let output = try await model.generate(prompt, maxTokens: maxTokens)
+            let output = try await model.generate(prompt, maxTokens: maxTokens).text
             let seconds = Double(DispatchTime.now().uptimeNanoseconds - start.uptimeNanoseconds) / 1_000_000_000
 
             let predicted = finalAnswer(in: output, cue: cue)

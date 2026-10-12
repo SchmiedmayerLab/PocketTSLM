@@ -17,9 +17,9 @@ import MLXLMCommon
 public final class TSLM {
     public let checkpoint: TSLMCheckpoint
     /// The checkpoint's time-series encoder and projector.
-    public let pipeline: OpenTSLMSPPipeline
+    let pipeline: OpenTSLMSPPipeline
     /// The base model, loaded after ``registerModelTypes()``.
-    public let base: ModelContainer
+    let base: ModelContainer
 
     /// Loads the checkpoint's encoder and projector; its LoRA adapter is applied to `base` on first use.
     public init(base: ModelContainer, checkpoint: TSLMCheckpoint) throws {
@@ -37,29 +37,44 @@ public final class TSLM {
     /// Answers an input with greedy decoding.
     /// - Parameter maxTokens: Defaults to the checkpoint's `generation.maxTokens`.
     public func generate(_ input: TSLMInput, maxTokens: Int? = nil) async throws -> String {
-        try await generate(checkpoint.prompt(for: input), maxTokens: maxTokens)
+        try await generate(checkpoint.prompt(for: input), maxTokens: maxTokens).text
     }
 
-    /// Answers a prompt that ``TSLMCheckpoint/prompt(for:)`` built, with greedy decoding.
-    public func generate(_ prompt: TSLMPrompt, maxTokens: Int? = nil) async throws -> String {
-        let projected = pipeline.projectTimeSeries(prompt.series)
+    /// Answers a prompt that ``TSLMCheckpoint/prompt(for:)`` built, with greedy decoding, and
+    /// measures the run.
+    /// - Parameters:
+    ///   - encoding: How the series reach the model; ``SeriesEncoding/text`` is the paper's baseline.
+    ///   - maxTokens: Defaults to the checkpoint's `generation.maxTokens`.
+    ///   - maxPromptPositions: Throws ``TSLMError/promptTooLong(positions:seriesPositions:limit:)``
+    ///     instead of starting a longer prefill.
+    public func generate(
+        _ prompt: TSLMPrompt,
+        seriesAs encoding: SeriesEncoding = .softPrompt,
+        maxTokens: Int? = nil,
+        maxPromptPositions: Int? = nil
+    ) async throws -> TSLMGeneration {
+        let maxTokens = maxTokens ?? checkpoint.configuration.generation.maxTokens
+        let projected = encoding == .softPrompt ? pipeline.projectTimeSeries(prompt.series) : []
         GPU.clearCache()
-        try await activateAdapter()
-        GPU.clearCache()
-        let base = base
-        return try await OpenTSLMLLM { base }.generate(
-            prePrompt: prompt.pre,
-            timeSeriesText: prompt.seriesDescriptions,
-            timeSeriesEmbeddings: projected,
-            postPrompt: prompt.post,
-            maxTokens: maxTokens ?? checkpoint.configuration.generation.maxTokens
-        )
-    }
-
-    /// Makes this checkpoint's LoRA adapter the active one on the base model.
-    public func activateAdapter() async throws {
         let lora = checkpoint.configuration.lora
+        let loraURL = checkpoint.loraURL
         let shape = OpenTSLMLoRA.Shape(rank: lora.rank, scale: lora.alpha / Float(lora.rank), keys: Set(lora.keys))
-        try await OpenTSLMLoRA.applyIfNeeded(to: base, checkpointURL: checkpoint.loraURL, shape: shape)
+        // The adapter is activated in the same `perform` as the generation, so a `TSLM` sharing the
+        // base model cannot swap in its own adapter in between.
+        return try await base.perform { context in
+            guard let model = context.model as? EmbeddingLlamaModel else {
+                throw TSLMError.unsupportedBaseModel(String(describing: type(of: context.model)))
+            }
+            try OpenTSLMLoRA.applyIfNeeded(to: model, checkpointURL: loraURL, shape: shape)
+            GPU.clearCache()
+            return try model.generate(
+                prompt,
+                projected: projected,
+                encoding: encoding,
+                tokenizer: context.tokenizer,
+                maxTokens: maxTokens,
+                maxPromptPositions: maxPromptPositions
+            )
+        }
     }
 }

@@ -192,6 +192,8 @@ public enum TSLMError: LocalizedError {
     case missingTemplateValue(String)
     /// The loaded base model was not built by ``registerModelTypes()``.
     case unsupportedBaseModel(String)
+    /// A prompt has more positions than the `maxPromptPositions` of a generation.
+    case promptTooLong(positions: Int, seriesPositions: Int, limit: Int)
 
     public var errorDescription: String? {
         switch self {
@@ -203,6 +205,8 @@ public enum TSLMError: LocalizedError {
             "The prompt template needs a value for {\(name)}."
         case .unsupportedBaseModel(let type):
             "The base model is \(type), not EmbeddingLlamaModel; call registerModelTypes() before loading it."
+        case let .promptTooLong(positions, _, limit):
+            "The prompt has \(positions) positions, more than the limit of \(limit)."
         }
     }
 }

@@ -8,10 +8,8 @@
 
 import Foundation
 import MLX
-import MLXLMCommon
 import OSLog
 import PocketTSLM
-import Tokenizers
 
 /// Context-economics benchmark for the paper's §4 headline comparison: the same
 /// raw series and the same on-device backbone, encoded two ways —
@@ -19,8 +17,8 @@ import Tokenizers
 /// vs. prompt-level **text serialization** (OpenTSLM's `"012"` format fed as
 /// ordinary tokens) — swept over series length.
 ///
-/// Both arms decode through the *exact same* ``MLXEmbeddingGenerator`` (greedy
-/// argmax, same stop tokens) so any difference in latency, throughput, or memory
+/// Both arms decode through the *exact same* ``TSLM/generate(_:seriesAs:maxTokens:maxPromptPositions:)``
+/// (greedy argmax, same stop tokens) so any difference in latency, throughput, or memory
 /// is attributable to the encoding alone, not the decoder. The only structural
 /// difference is the time-series region: projected embeddings vs. serialized text
 /// tokens. The surrounding text (pre-prompt, per-series label, post-prompt) is
@@ -74,12 +72,6 @@ public final class OpenTSLMBenchmark {
         public let softPromptMaxSeriesLength: Int
     }
 
-    /// Where the time-series region of the prompt comes from for an arm.
-    private enum TimeSeriesRegion {
-        case embeddings([MLXArray])   // projected soft prompts
-        case serializedText           // OpenTSLM "012" text tokens
-    }
-
     private let logger = Logger(subsystem: "PocketTSLM", category: "OpenTSLMBenchmark")
     private let model: TSLM
 
@@ -104,46 +96,22 @@ public final class OpenTSLMBenchmark {
         contextWindow: Int = 8192,
         maxPromptPositions: Int = 2048
     ) async throws -> Report {
-        try await model.activateAdapter()
-        GPU.clearCache()
-        let container = model.base
-
         var rows: [LengthComparison] = []
         for length in lengths {
             let truncated = Self.truncate(sample, to: length)
-            // Soft-prompt embeddings are produced outside the decoder container,
-            // mirroring OpenTSLMInferenceService's projection step (projectSample
-            // already forces an eval internally).
-            let projected = model.pipeline.projectTimeSeries(truncated.series)
+            let sp = await runArm(.softPrompt, sample: truncated, maxTokens: maxTokens, maxPromptPositions: maxPromptPositions)
+            GPU.clearCache()
+            let txt = await runArm(.text, sample: truncated, maxTokens: maxTokens, maxPromptPositions: maxPromptPositions)
+            GPU.clearCache()
 
-            let comparison: LengthComparison = try await container.perform { context in
-                guard let model = context.model as? EmbeddingLlamaModel else {
-                    throw NSError(
-                        domain: "OpenTSLMBenchmark", code: 2,
-                        userInfo: [NSLocalizedDescriptionKey:
-                            "Loaded model is not EmbeddingLlamaModel — ensure registerModelTypes() ran."])
-                }
-                let tokenizer = context.tokenizer
-
-                let sp = try self.runArm(
-                    encoding: "soft_prompt", sample: truncated, region: .embeddings(projected),
-                    model: model, tokenizer: tokenizer, maxTokens: maxTokens, maxPromptPositions: maxPromptPositions)
-                GPU.clearCache()
-                let txt = try self.runArm(
-                    encoding: "text_serialized", sample: truncated, region: .serializedText,
-                    model: model, tokenizer: tokenizer, maxTokens: maxTokens, maxPromptPositions: maxPromptPositions)
-                GPU.clearCache()
-
-                let compression = sp.timeSeriesPositions > 0
-                    ? Double(txt.timeSeriesPositions) / Double(sp.timeSeriesPositions)
-                    : 0   // 0 = undefined; keeps the report JSON-encodable (no NaN)
-                return LengthComparison(
-                    seriesLength: truncated.series.first?.count ?? length,
-                    softPrompt: sp, textSerialized: txt, positionCompression: compression)
-            }
+            let compression = sp.timeSeriesPositions > 0
+                ? Double(txt.timeSeriesPositions) / Double(sp.timeSeriesPositions)
+                : 0   // 0 = undefined; keeps the report JSON-encodable (no NaN)
+            let comparison = LengthComparison(
+                seriesLength: truncated.series.first?.count ?? length,
+                softPrompt: sp, textSerialized: txt, positionCompression: compression)
             rows.append(comparison)
             self.logger.info("benchmark L=\(comparison.seriesLength, privacy: .public): text=\(comparison.textSerialized.promptPositions, privacy: .public) pos, sp=\(comparison.softPrompt.promptPositions, privacy: .public) pos, compression=\(comparison.positionCompression, privacy: .public)x")
-            GPU.clearCache()
         }
 
         let (textMax, spMax) = Self.contextCeiling(rows: rows, contextWindow: contextWindow)
@@ -154,102 +122,31 @@ public final class OpenTSLMBenchmark {
 
     // MARK: - One arm
 
-    private func runArm(
-        encoding: String,
-        sample: TSLMPrompt,
-        region: TimeSeriesRegion,
-        model: EmbeddingLlamaModel,
-        tokenizer: Tokenizer,
-        maxTokens: Int,
-        maxPromptPositions: Int
-    ) throws -> ArmStats {
+    private func runArm(_ encoding: SeriesEncoding, sample: TSLMPrompt, maxTokens: Int, maxPromptPositions: Int) async -> ArmStats {
+        let name = encoding == .softPrompt ? "soft_prompt" : "text_serialized"
         let seriesLength = sample.series.first?.count ?? 0
-
-        // Embed a text segment to `[T, hidden]` via the model's own token table.
-        // Pre/label/post add special tokens (BOS) to match OpenTSLMLLM / the Python
-        // reference; the serialized numbers are inline data (no extra BOS) so the
-        // text scaffold stays identical to the soft-prompt arm.
-        func textEmbedding(_ text: String, addSpecialTokens: Bool) -> MLXArray {
-            let ids = tokenizer.encode(text: text, addSpecialTokens: addSpecialTokens)
-            let idArray = MLXArray(ids.map { Int32($0) }, [1, ids.count])
-            return model.tokenEmbeddings(idArray)[0]
-        }
-
-        let pre = textEmbedding(sample.pre, addSpecialTokens: true)
-        let dtype = pre.dtype
-        var segments: [MLXArray] = [pre]
-        var timeSeriesPositions = 0
-
-        switch region {
-        case .embeddings(let embeddings):
-            for (text, embedding) in zip(sample.seriesDescriptions, embeddings) {
-                segments.append(textEmbedding(text, addSpecialTokens: true))
-                let typed = embedding.asType(dtype)
-                segments.append(typed)
-                timeSeriesPositions += typed.dim(0)
-            }
-        case .serializedText:
-            for (text, series) in zip(sample.seriesDescriptions, sample.series) {
-                segments.append(textEmbedding(text, addSpecialTokens: true))
-                let serialized = TimeSeriesTextSerializer.serialize(series)
-                let ids = tokenizer.encode(text: serialized, addSpecialTokens: false)
-                timeSeriesPositions += ids.count
-                let idArray = MLXArray(ids.map { Int32($0) }, [1, ids.count])
-                segments.append(model.tokenEmbeddings(idArray)[0].asType(dtype))
-            }
-        }
-        segments.append(textEmbedding(sample.post, addSpecialTokens: true))
-
-        let sequence = concatenated(segments, axis: 0)
-        let inputsEmbeds = sequence.reshaped([1, sequence.dim(0), sequence.dim(1)])
-        let promptPositions = inputsEmbeds.dim(1)
-
-        // Memory guard: don't attempt a prefill beyond the on-device budget. A jetsam
-        // OOM termination can't be caught, so we must skip rather than catch. We return
-        // here *before* `eval`, so the (lazy) embedding graph above is never
-        // materialized for a skipped arm — no large allocation occurs.
-        if promptPositions > maxPromptPositions {
-            return ArmStats(
-                encoding: encoding, seriesLength: seriesLength, promptPositions: promptPositions,
-                timeSeriesPositions: timeSeriesPositions, generatedTokens: 0, prefillSeconds: 0,
-                totalSeconds: 0, decodeTokensPerSecond: 0, peakMemoryBytes: 0, didOOM: true,
-                outputText: "[skipped: \(promptPositions) positions exceed on-device budget \(maxPromptPositions) — would risk an OOM termination]")
-        }
-        eval(inputsEmbeds)
-
-        // Stop tokens identical to OpenTSLMLLM (Llama-3.2 has multiple).
-        var stopTokens: Set<Int> = []
-        if let primary = tokenizer.eosTokenId { stopTokens.insert(primary) }
-        for marker in ["<|eot_id|>", "<|end_of_text|>"] {
-            let ids = tokenizer.encode(text: marker, addSpecialTokens: false)
-            if ids.count == 1 { stopTokens.insert(ids[0]) }
-        }
-
-        let generator = MLXEmbeddingGenerator(
-            model: model,
-            eosTokenIds: stopTokens,
-            tokenSampler: { logits in argMax(logits, axis: -1).item(Int.self) },
-            decodeTokens: { ids in tokenizer.decode(tokens: ids, skipSpecialTokens: true) })
-
-        GPU.resetPeakMemory()
         do {
-            let measured = try generator.generateMeasured(inputsEmbeds: inputsEmbeds, maxNewTokens: maxTokens)
-            let peak = GPU.peakMemory
+            let measured = try await model.generate(
+                sample, seriesAs: encoding, maxTokens: maxTokens, maxPromptPositions: maxPromptPositions)
             let decodeSeconds = max(measured.totalSeconds - measured.prefillSeconds, 1e-9)
-            let tps = measured.tokenIds.count > 1
-                ? Double(measured.tokenIds.count - 1) / decodeSeconds
-                : 0
+            let tps = measured.tokenCount > 1 ? Double(measured.tokenCount - 1) / decodeSeconds : 0
             return ArmStats(
-                encoding: encoding, seriesLength: seriesLength, promptPositions: promptPositions,
-                timeSeriesPositions: timeSeriesPositions, generatedTokens: measured.tokenIds.count,
+                encoding: name, seriesLength: seriesLength, promptPositions: measured.promptPositions,
+                timeSeriesPositions: measured.seriesPositions, generatedTokens: measured.tokenCount,
                 prefillSeconds: measured.prefillSeconds, totalSeconds: measured.totalSeconds,
-                decodeTokensPerSecond: tps, peakMemoryBytes: peak, didOOM: false,
+                decodeTokensPerSecond: tps, peakMemoryBytes: measured.peakMemoryBytes, didOOM: false,
                 outputText: measured.text)
-        } catch {
-            logger.error("benchmark arm \(encoding, privacy: .public) failed at \(promptPositions, privacy: .public) positions: \(error.localizedDescription, privacy: .public)")
+        } catch let TSLMError.promptTooLong(positions, seriesPositions, limit) {
             return ArmStats(
-                encoding: encoding, seriesLength: seriesLength, promptPositions: promptPositions,
-                timeSeriesPositions: timeSeriesPositions, generatedTokens: 0, prefillSeconds: 0,
+                encoding: name, seriesLength: seriesLength, promptPositions: positions,
+                timeSeriesPositions: seriesPositions, generatedTokens: 0, prefillSeconds: 0,
+                totalSeconds: 0, decodeTokensPerSecond: 0, peakMemoryBytes: 0, didOOM: true,
+                outputText: "[skipped: \(positions) positions exceed on-device budget \(limit) — would risk an OOM termination]")
+        } catch {
+            logger.error("benchmark arm \(name, privacy: .public) failed: \(error.localizedDescription, privacy: .public)")
+            return ArmStats(
+                encoding: name, seriesLength: seriesLength, promptPositions: 0,
+                timeSeriesPositions: 0, generatedTokens: 0, prefillSeconds: 0,
                 totalSeconds: 0, decodeTokensPerSecond: 0, peakMemoryBytes: GPU.peakMemory,
                 didOOM: true, outputText: "[generation failed: \(error.localizedDescription)]")
         }
