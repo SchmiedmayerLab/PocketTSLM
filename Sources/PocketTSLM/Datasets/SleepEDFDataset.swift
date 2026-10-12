@@ -1,77 +1,15 @@
+//
+// This source file is part of the PocketTSLM open-source project
+//
+// SPDX-FileCopyrightText: 2026 Schmiedmayer Lab and the project authors (see CONTRIBUTORS.md)
+//
+// SPDX-License-Identifier: MIT
+//
+
 import Foundation
 
-public final class SleepEDFDataset {
-
-    public enum Split: String {
-        case train
-        case validation
-        case test
-    }
-
-    // Verbatim from OpenTSLM `src/time_series_datasets/sleep/SleepEDFCoTQADataset.py`
-    // (`_get_pre_prompt` / `_get_post_prompt`). The post-prompt is *not* a fill-in cue
-    // ending in "Answer:" — it's an instruction telling the model to produce a rationale
-    // and then end its own response with `Answer: <label>`. Diverging from this (as the
-    // previous Swift prompt did) makes greedy decoding skip straight to the label.
-    public static let prePrompt = """
-
-            You are given a 30-second EEG time series segment. Your task is to classify the sleep stage based on analysis of the data.
-
-            Instructions:
-            - Analyze the data objectively without presuming a particular label.
-            - Reason carefully and methodically about what the signal patterns suggest regarding sleep stage.
-            - Write your reasoning as a single, coherent paragraph. Do not use bullet points, lists, or section headers.
-            - Only reveal the correct class at the very end.
-            - Never state that you are uncertain or unable to classify the data. You must always provide a rationale and a final answer.
-
-
-
-"""
-
-    // Note: ends with literal `Answer:` (open quote, no closing quote) — the prompt is
-    // mid-instruction and the model continues from there with its rationale and
-    // concludes with `Answer: <label>`. The trailing space in the Python source is
-    // NOT intentional: OpenTSLM's `QADataset._format_sample` strips it before
-    // tokenizing, and `OpenTSLMSPSample.init` strips it here for the same reason.
-    public static let postPrompt =
-        "Possible sleep stages are:\n"
-        + "        Wake, Non-REM stage 1, Non-REM stage 2, Non-REM stage 3, REM sleep, Movement\n"
-        + "\n"
-        + "        - Please now write your rationale. Make sure that your last word is the answer. You MUST end your response with \"Answer: "
-
-    private let samples: [OpenTSLMSPSample]
-
-    public init(csvURL: URL, split: Split = .test, seed: UInt64 = 42, maxRows: Int = 5000) throws {
-        guard maxRows > 0 else {
-            throw NSError(
-                domain: "SleepEDFDataset",
-                code: 7,
-                userInfo: [NSLocalizedDescriptionKey: "maxRows must be > 0"]
-            )
-        }
-        let rows = try Self.readRows(from: csvURL, maxRows: maxRows)
-        let splitRows = Self.stratifiedSplit(rows: rows, split: split, seed: seed)
-        self.samples = try splitRows.map(Self.convertRow)
-    }
-
-    public var count: Int { samples.count }
-
-    public func sample(at index: Int) -> OpenTSLMSPSample {
-        precondition(index >= 0 && index < samples.count, "sample index out of range")
-        return samples[index]
-    }
-
-    /// Reads one raw CSV row (no train/val/test split) for deterministic single-sample
-    /// parity testing against the Python reference, which reads the same row.
-    public static func rawSample(csvURL: URL, rowIndex: Int = 0, maxRows: Int = 5000) throws -> OpenTSLMSPSample {
-        let rows = try readRows(from: csvURL, maxRows: maxRows)
-        guard !rows.isEmpty else {
-            throw NSError(domain: "SleepEDFDataset", code: 8, userInfo: [NSLocalizedDescriptionKey: "No rows in CSV"])
-        }
-        let idx = min(max(rowIndex, 0), rows.count - 1)
-        return try convertRow(rows[idx])
-    }
-
+/// Reads Sleep-EDF chain-of-thought exports of OpenTSLM's `SleepEDFCoTQADataset`.
+public enum SleepEDFDataset {
     /// Reads the first `count` rows of a Sleep-EDF CoT export (columns `time_series`, `label`,
     /// `rationale`), with no train/validation/test split.
     public static func evaluationSamples(csvURL: URL, count: Int) throws -> [EvaluationSample] {
@@ -128,39 +66,6 @@ private extension SleepEDFDataset {
         return rows
     }
 
-    static func convertRow(_ row: Row) throws -> OpenTSLMSPSample {
-        let rawSeries = try parseTimeSeries(row.timeSeries)
-        let normalized = zNormalize(rawSeries)
-
-        let mean = rawSeries.reduce(0, +) / Float(max(rawSeries.count, 1))
-        let variance = rawSeries.reduce(0) { partial, value in
-            let d = value - mean
-            return partial + d * d
-        } / Float(max(rawSeries.count, 1))
-        let std = max(sqrt(variance), 1e-6)
-
-        return OpenTSLMSPSample(
-            prePrompt: SleepEDFDataset.prePrompt,
-            timeSeriesText: [
-                "The following is the EEG time series, it has mean \(String(format: "%.4f", mean)) and std \(String(format: "%.4f", std)):"
-            ],
-            timeSeries: [normalized],
-            postPrompt: SleepEDFDataset.postPrompt,
-            label: row.label,
-            answer: row.rationale
-        )
-    }
-
-    static func zNormalize(_ values: [Float]) -> [Float] {
-        let mean = values.reduce(0, +) / Float(max(values.count, 1))
-        let variance = values.reduce(0) { partial, value in
-            let d = value - mean
-            return partial + d * d
-        } / Float(max(values.count, 1))
-        let std = max(sqrt(variance), 1e-6)
-        return values.map { ($0 - mean) / std }
-    }
-
     static func parseTimeSeries(_ raw: String) throws -> [Float] {
         guard let data = raw.data(using: .utf8) else {
             throw NSError(domain: "SleepEDFDataset", code: 3, userInfo: [NSLocalizedDescriptionKey: "Invalid UTF-8 in time_series"])
@@ -177,44 +82,6 @@ private extension SleepEDFDataset {
         }
 
         throw NSError(domain: "SleepEDFDataset", code: 4, userInfo: [NSLocalizedDescriptionKey: "Unsupported time_series JSON shape"])
-    }
-
-    static func stratifiedSplit(rows: [Row], split: SleepEDFDataset.Split, seed: UInt64) -> [Row] {
-        var groups: [String: [Row]] = [:]
-        for row in rows {
-            groups[row.label, default: []].append(row)
-        }
-
-        var selected: [Row] = []
-        var generator = SeededGenerator(seed: seed)
-
-        for labelRows in groups.values {
-            var shuffled = labelRows
-            shuffled.shuffle(using: &generator)
-
-            let total = shuffled.count
-            let testCount = Int((Double(total) * 0.1).rounded())
-            let trainValCount = max(total - testCount, 0)
-            let validationCount = Int((Double(trainValCount) * (1.0 / 9.0)).rounded())
-            let trainCount = max(trainValCount - validationCount, 0)
-
-            let train = Array(shuffled[0 ..< min(trainCount, total)])
-            let validationStart = min(trainCount, total)
-            let validationEnd = min(validationStart + validationCount, total)
-            let validation = Array(shuffled[validationStart ..< validationEnd])
-            let test = Array(shuffled[validationEnd ..< total])
-
-            switch split {
-            case .train:
-                selected.append(contentsOf: train)
-            case .validation:
-                selected.append(contentsOf: validation)
-            case .test:
-                selected.append(contentsOf: test)
-            }
-        }
-
-        return selected
     }
 
     static func parseCSV(_ csv: String) -> [[String]] {
@@ -277,19 +144,5 @@ private extension SleepEDFDataset {
         }
 
         return records
-    }
-}
-
-private struct SeededGenerator: RandomNumberGenerator {
-
-    private var state: UInt64
-
-    init(seed: UInt64) {
-        self.state = seed
-    }
-
-    mutating func next() -> UInt64 {
-        state = 6364136223846793005 &* state &+ 1442695040888963407
-        return state
     }
 }
