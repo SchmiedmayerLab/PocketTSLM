@@ -1,38 +1,6 @@
 import Foundation
 import MLX
 
-public struct OpenTSLMSPSample {
-
-    public let prePrompt: String
-    public let timeSeriesText: [String]
-    public let timeSeries: [[Float]]
-    public let postPrompt: String
-    public let label: String
-    public let answer: String
-
-    public init(
-        prePrompt: String,
-        timeSeriesText: [String],
-        timeSeries: [[Float]],
-        postPrompt: String,
-        label: String,
-        answer: String
-    ) {
-        // Mirror OpenTSLM's `QADataset._format_sample`, which calls `.strip()` on the
-        // pre-prompt, post-prompt, and answer before tokenizing. The checkpoints were
-        // trained on the stripped text; feeding the raw Swift multiline literals adds
-        // stray tokens (leading newline/indent on the pre-prompt, trailing whitespace
-        // after `Answer:` on the post-prompt) that derail greedy decoding — measured on
-        // Sleep-EDF as 45% accuracy with 10/20 empty generations vs. 85% once stripped.
-        self.prePrompt = prePrompt.trimmingCharacters(in: .whitespacesAndNewlines)
-        self.timeSeriesText = timeSeriesText
-        self.timeSeries = timeSeries
-        self.postPrompt = postPrompt.trimmingCharacters(in: .whitespacesAndNewlines)
-        self.label = label
-        self.answer = answer.trimmingCharacters(in: .whitespacesAndNewlines)
-    }
-}
-
 public final class OpenTSLMSPPipeline {
 
     public let encoder: TransformerCNNEncoder
@@ -83,10 +51,6 @@ public final class OpenTSLMSPPipeline {
             result.append(projected[i])
         }
         return result
-    }
-
-    public func projectSample(_ sample: OpenTSLMSPSample) -> [MLXArray] {
-        projectTimeSeries(sample.timeSeries)
     }
 
     private func paddedLength(for seriesBatch: [[Float]]) -> Int {

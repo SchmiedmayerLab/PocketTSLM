@@ -88,10 +88,10 @@ public enum Evaluation {
         var seriesLength = 0
 
         for (index, sample) in samples.enumerated() {
-            let prepared = try model.checkpoint.makeSample(sample.input, label: sample.label, answer: sample.rationale)
-            seriesLength = prepared.timeSeries.first?.count ?? 0
+            let prompt = try model.checkpoint.prompt(for: sample.input)
+            seriesLength = prompt.series.first?.count ?? 0
             let start = DispatchTime.now()
-            let output = try await model.generate(prepared, maxTokens: maxTokens)
+            let output = try await model.generate(prompt, maxTokens: maxTokens)
             let seconds = Double(DispatchTime.now().uptimeNanoseconds - start.uptimeNanoseconds) / 1_000_000_000
 
             let predicted = finalAnswer(in: output, cue: cue)

@@ -25,7 +25,6 @@ class OpenTSLMInferenceService: DefaultInitializable, Module, EnvironmentAccessi
     struct SampleInteraction {
         let prompt: String
         let response: String
-        let groundTruth: String
     }
 
     /// EEG/sleep single-sample interaction (fixed raw CSV row) with the sleep checkpoint,
@@ -47,15 +46,9 @@ class OpenTSLMInferenceService: DefaultInitializable, Module, EnvironmentAccessi
         return try await interaction(with: model, on: prepared(BundledAssets.ecgRow(sampleIndex), for: model))
     }
 
-    private func interaction(with model: TSLM, on sample: OpenTSLMSPSample) async throws -> SampleInteraction {
-        let response = try await model.generate(sample, maxTokens: 200)
-        return SampleInteraction(prompt: promptText(for: sample), response: response, groundTruth: sample.answer)
-    }
-
-    /// The displayable text prompt for a sample (pre-prompt, per-lead time-series
-    /// descriptions, post-prompt). The numeric series itself is injected as embeddings.
-    private func promptText(for sample: OpenTSLMSPSample) -> String {
-        ([sample.prePrompt] + sample.timeSeriesText + [sample.postPrompt]).joined(separator: "\n")
+    private func interaction(with model: TSLM, on prompt: TSLMPrompt) async throws -> SampleInteraction {
+        let response = try await model.generate(prompt, maxTokens: 200)
+        return SampleInteraction(prompt: prompt.text, response: response)
     }
 
     /// Runs OpenTSLM-SP on a real (e.g. HealthKit) ECG recording and returns the model's
@@ -463,8 +456,8 @@ class OpenTSLMInferenceService: DefaultInitializable, Module, EnvironmentAccessi
         return try TSLM(base: base, checkpoint: TSLMCheckpoint(directory: BundledAssets.item("Checkpoints/\(name)")))
     }
 
-    /// `row` as `model`'s input, carrying the row's label and rationale.
-    private func prepared(_ row: EvaluationSample, for model: TSLM) throws -> OpenTSLMSPSample {
-        try model.checkpoint.makeSample(row.input, label: row.label, answer: row.rationale)
+    /// `row` as `model`'s prompt.
+    private func prepared(_ row: EvaluationSample, for model: TSLM) throws -> TSLMPrompt {
+        try model.checkpoint.prompt(for: row.input)
     }
 }

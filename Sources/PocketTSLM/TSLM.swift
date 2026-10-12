@@ -37,21 +37,21 @@ public final class TSLM {
     /// Answers an input with greedy decoding.
     /// - Parameter maxTokens: Defaults to the checkpoint's `generation.maxTokens`.
     public func generate(_ input: TSLMInput, maxTokens: Int? = nil) async throws -> String {
-        try await generate(checkpoint.makeSample(input), maxTokens: maxTokens)
+        try await generate(checkpoint.prompt(for: input), maxTokens: maxTokens)
     }
 
-    /// Answers a prepared sample, for example a row of an evaluation dataset, with greedy decoding.
-    public func generate(_ sample: OpenTSLMSPSample, maxTokens: Int? = nil) async throws -> String {
-        let projected = pipeline.projectSample(sample)
+    /// Answers a prompt that ``TSLMCheckpoint/prompt(for:)`` built, with greedy decoding.
+    public func generate(_ prompt: TSLMPrompt, maxTokens: Int? = nil) async throws -> String {
+        let projected = pipeline.projectTimeSeries(prompt.series)
         GPU.clearCache()
         try await activateAdapter()
         GPU.clearCache()
         let base = base
         return try await OpenTSLMLLM { base }.generate(
-            prePrompt: sample.prePrompt,
-            timeSeriesText: sample.timeSeriesText,
+            prePrompt: prompt.pre,
+            timeSeriesText: prompt.seriesDescriptions,
             timeSeriesEmbeddings: projected,
-            postPrompt: sample.postPrompt,
+            postPrompt: prompt.post,
             maxTokens: maxTokens ?? checkpoint.configuration.generation.maxTokens
         )
     }

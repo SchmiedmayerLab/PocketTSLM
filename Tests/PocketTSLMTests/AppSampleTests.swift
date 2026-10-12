@@ -60,35 +60,33 @@ final class AppSampleTests: XCTestCase {
         return SHA256.hash(data: bytes).map { String(format: "%02x", $0) }.joined()
     }
 
-    func assertMatches(_ sample: OpenTSLMSPSample, _ expected: Captured, file: StaticString = #filePath, line: UInt = #line) {
-        XCTAssertEqual(sample.prePrompt, expected.prePrompt, expected.name, file: file, line: line)
-        XCTAssertEqual(sample.timeSeriesText, expected.timeSeriesText, expected.name, file: file, line: line)
-        XCTAssertEqual(sample.postPrompt, expected.postPrompt, expected.name, file: file, line: line)
+    func assertMatches(_ prompt: TSLMPrompt, _ expected: Captured, file: StaticString = #filePath, line: UInt = #line) {
+        XCTAssertEqual(prompt.pre, expected.prePrompt, expected.name, file: file, line: line)
+        XCTAssertEqual(prompt.seriesDescriptions, expected.timeSeriesText, expected.name, file: file, line: line)
+        XCTAssertEqual(prompt.post, expected.postPrompt, expected.name, file: file, line: line)
+        XCTAssertEqual(prompt.series.map(\.count), expected.seriesLengths, expected.name, file: file, line: line)
+        XCTAssertEqual(prompt.series.map(Self.sha256), expected.seriesSHA256, expected.name, file: file, line: line)
+    }
+
+    /// The label and rationale a reader passes on, which the app carried in its sample.
+    func assertMatches(_ sample: EvaluationSample, _ expected: Captured, file: StaticString = #filePath, line: UInt = #line) {
         XCTAssertEqual(sample.label, expected.label, expected.name, file: file, line: line)
-        XCTAssertEqual(sample.answer, expected.answer, expected.name, file: file, line: line)
-        XCTAssertEqual(sample.timeSeries.map(\.count), expected.seriesLengths, expected.name, file: file, line: line)
-        XCTAssertEqual(sample.timeSeries.map(Self.sha256), expected.seriesSHA256, expected.name, file: file, line: line)
+        XCTAssertEqual(sample.rationale.trimmingCharacters(in: .whitespacesAndNewlines), expected.answer, expected.name, file: file, line: line)
     }
 
     func testSleepEDFSamplesMatchTheApp() throws {
-        let rows: [(count: Int, seed: UInt64, scale: Float, offset: Float, label: String, rationale: String)] = [
-            (1500, 1, 2e-5, -1e-6, "W", "The signal shows fast, low-amplitude activity. Answer: Wake"),
-            (1600, 2, 5e-5, 3e-6, "N2", "Spindles and K-complexes appear throughout. Answer: Non-REM stage 2")
-        ]
+        let rows: [(count: Int, seed: UInt64, scale: Float, offset: Float)] = [(1500, 1, 2e-5, -1e-6), (1600, 2, 5e-5, 3e-6)]
         let checkpoint = try Self.checkpoint("sleep-edf")
         for (index, row) in rows.enumerated() {
             let series = TimeSeries(samples: Synthetic.series(count: row.count, seed: row.seed, scale: row.scale, offset: row.offset))
-            let sample = try checkpoint.makeSample(TSLMInput(series: [series]), label: row.label, answer: row.rationale)
-            assertMatches(sample, try Self.captured("sleep-\(index)"))
+            assertMatches(try checkpoint.prompt(for: TSLMInput(series: [series])), try Self.captured("sleep-\(index)"))
         }
     }
 
     func testECGQASamplesMatchTheApp() throws {
-        let rows: [(ecgID: Int, question: String, context: String, options: [String], label: String, rationale: String)] = [
-            (101, "Does this ECG show sinus rhythm?", "A 63-year-old patient with palpitations.", ["yes", "no", "not sure"],
-             "yes", "Regular rhythm with upright P waves. Answer: yes"),
-            (202, "What is the heart rhythm?", "12-lead ECG recording.", [],
-             "sinus rhythm", "Normal P waves precede each QRS complex. Answer: sinus rhythm")
+        let rows: [(ecgID: Int, question: String, context: String, options: [String])] = [
+            (101, "Does this ECG show sinus rhythm?", "A 63-year-old patient with palpitations.", ["yes", "no", "not sure"]),
+            (202, "What is the heart rhythm?", "12-lead ECG recording.", [])
         ]
         let checkpoint = try Self.checkpoint("ecg-qa")
         for (index, row) in rows.enumerated() {
@@ -105,7 +103,7 @@ final class AppSampleTests: XCTestCase {
                 context: ["clinicalContext": row.context, "question": row.question],
                 answerOptions: row.options
             )
-            assertMatches(try checkpoint.makeSample(input, label: row.label, answer: row.rationale), expected)
+            assertMatches(try checkpoint.prompt(for: input), expected)
         }
     }
 
@@ -123,12 +121,7 @@ final class AppSampleTests: XCTestCase {
                 context: context,
                 answerOptions: ["yes", "no"]
             )
-            let sample = try checkpoint.makeSample(
-                input,
-                label: "sinus rhythm",
-                answer: "classification=sinus rhythm, symptoms_status=none, average_heart_rate=72.0"
-            )
-            assertMatches(sample, try Self.captured("watch-\(index)"))
+            assertMatches(try checkpoint.prompt(for: input), try Self.captured("watch-\(index)"))
         }
     }
 
@@ -176,8 +169,8 @@ final class AppSampleTests: XCTestCase {
         let sleep = try SleepEDFDataset.evaluationSamples(csvURL: folder.appendingPathComponent("sleep.csv"), count: 2)
         XCTAssertEqual(sleep.map(\.expectedAnswer), ["wake", "non-rem stage 2"])
         for (index, sample) in sleep.enumerated() {
-            let prepared = try Self.checkpoint("sleep-edf").makeSample(sample.input, label: sample.label, answer: sample.rationale)
-            assertMatches(prepared, try Self.captured("sleep-\(index)"))
+            assertMatches(try Self.checkpoint("sleep-edf").prompt(for: sample.input), try Self.captured("sleep-\(index)"))
+            assertMatches(sample, try Self.captured("sleep-\(index)"))
         }
 
         let ecg = try ECGQACoTDataset(
@@ -188,14 +181,14 @@ final class AppSampleTests: XCTestCase {
         for index in 0 ..< ecg.count {
             let sample = try ecg.evaluationSample(at: index)
             XCTAssertEqual(sample.expectedAnswer, ["yes", "sinus rhythm"][index])
-            let prepared = try Self.checkpoint("ecg-qa").makeSample(sample.input, label: sample.label, answer: sample.rationale)
-            assertMatches(prepared, try Self.captured("ecg-qa-\(index)"))
+            assertMatches(try Self.checkpoint("ecg-qa").prompt(for: sample.input), try Self.captured("ecg-qa-\(index)"))
+            assertMatches(sample, try Self.captured("ecg-qa-\(index)"))
         }
     }
 
     func testMissingTemplateValuesThrow() throws {
         let input = TSLMInput(series: [TimeSeries(samples: [1, 2, 3])], context: ["question": "Is this normal?"])
-        XCTAssertThrowsError(try Self.checkpoint("ecg-qa").makeSample(input)) { error in
+        XCTAssertThrowsError(try Self.checkpoint("ecg-qa").prompt(for: input)) { error in
             guard case TSLMError.missingTemplateValue("clinicalContext") = error else {
                 return XCTFail("unexpected error \(error)")
             }

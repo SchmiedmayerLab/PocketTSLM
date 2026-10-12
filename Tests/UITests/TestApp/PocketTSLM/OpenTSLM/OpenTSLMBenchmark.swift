@@ -98,7 +98,7 @@ public final class OpenTSLMBenchmark {
     ///   - contextWindow: the backbone's theoretical context length, used only for
     ///     the extrapolated context-ceiling figures (not the runtime guard).
     public func run(
-        sample: OpenTSLMSPSample,
+        sample: TSLMPrompt,
         lengths: [Int],
         maxTokens: Int = 200,
         contextWindow: Int = 8192,
@@ -114,7 +114,7 @@ public final class OpenTSLMBenchmark {
             // Soft-prompt embeddings are produced outside the decoder container,
             // mirroring OpenTSLMInferenceService's projection step (projectSample
             // already forces an eval internally).
-            let projected = model.pipeline.projectSample(truncated)
+            let projected = model.pipeline.projectTimeSeries(truncated.series)
 
             let comparison: LengthComparison = try await container.perform { context in
                 guard let model = context.model as? EmbeddingLlamaModel else {
@@ -138,7 +138,7 @@ public final class OpenTSLMBenchmark {
                     ? Double(txt.timeSeriesPositions) / Double(sp.timeSeriesPositions)
                     : 0   // 0 = undefined; keeps the report JSON-encodable (no NaN)
                 return LengthComparison(
-                    seriesLength: truncated.timeSeries.first?.count ?? length,
+                    seriesLength: truncated.series.first?.count ?? length,
                     softPrompt: sp, textSerialized: txt, positionCompression: compression)
             }
             rows.append(comparison)
@@ -156,14 +156,14 @@ public final class OpenTSLMBenchmark {
 
     private func runArm(
         encoding: String,
-        sample: OpenTSLMSPSample,
+        sample: TSLMPrompt,
         region: TimeSeriesRegion,
         model: EmbeddingLlamaModel,
         tokenizer: Tokenizer,
         maxTokens: Int,
         maxPromptPositions: Int
     ) throws -> ArmStats {
-        let seriesLength = sample.timeSeries.first?.count ?? 0
+        let seriesLength = sample.series.first?.count ?? 0
 
         // Embed a text segment to `[T, hidden]` via the model's own token table.
         // Pre/label/post add special tokens (BOS) to match OpenTSLMLLM / the Python
@@ -175,21 +175,21 @@ public final class OpenTSLMBenchmark {
             return model.tokenEmbeddings(idArray)[0]
         }
 
-        let pre = textEmbedding(sample.prePrompt, addSpecialTokens: true)
+        let pre = textEmbedding(sample.pre, addSpecialTokens: true)
         let dtype = pre.dtype
         var segments: [MLXArray] = [pre]
         var timeSeriesPositions = 0
 
         switch region {
         case .embeddings(let embeddings):
-            for (text, embedding) in zip(sample.timeSeriesText, embeddings) {
+            for (text, embedding) in zip(sample.seriesDescriptions, embeddings) {
                 segments.append(textEmbedding(text, addSpecialTokens: true))
                 let typed = embedding.asType(dtype)
                 segments.append(typed)
                 timeSeriesPositions += typed.dim(0)
             }
         case .serializedText:
-            for (text, series) in zip(sample.timeSeriesText, sample.timeSeries) {
+            for (text, series) in zip(sample.seriesDescriptions, sample.series) {
                 segments.append(textEmbedding(text, addSpecialTokens: true))
                 let serialized = TimeSeriesTextSerializer.serialize(series)
                 let ids = tokenizer.encode(text: serialized, addSpecialTokens: false)
@@ -198,7 +198,7 @@ public final class OpenTSLMBenchmark {
                 segments.append(model.tokenEmbeddings(idArray)[0].asType(dtype))
             }
         }
-        segments.append(textEmbedding(sample.postPrompt, addSpecialTokens: true))
+        segments.append(textEmbedding(sample.post, addSpecialTokens: true))
 
         let sequence = concatenated(segments, axis: 0)
         let inputsEmbeds = sequence.reshaped([1, sequence.dim(0), sequence.dim(1)])
@@ -257,14 +257,12 @@ public final class OpenTSLMBenchmark {
 
     // MARK: - Helpers
 
-    private static func truncate(_ sample: OpenTSLMSPSample, to length: Int) -> OpenTSLMSPSample {
-        OpenTSLMSPSample(
-            prePrompt: sample.prePrompt,
-            timeSeriesText: sample.timeSeriesText,
-            timeSeries: sample.timeSeries.map { Array($0.prefix(length)) },
-            postPrompt: sample.postPrompt,
-            label: sample.label,
-            answer: sample.answer)
+    private static func truncate(_ sample: TSLMPrompt, to length: Int) -> TSLMPrompt {
+        TSLMPrompt(
+            pre: sample.pre,
+            seriesDescriptions: sample.seriesDescriptions,
+            series: sample.series.map { Array($0.prefix(length)) },
+            post: sample.post)
     }
 
     /// Extrapolate the max raw series length that fits `contextWindow` under each

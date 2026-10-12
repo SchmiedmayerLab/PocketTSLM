@@ -102,6 +102,88 @@ public struct TSLMCheckpoint: Sendable {
     }
 }
 
+extension TSLMCheckpoint {
+    /// Builds what the model sees for `input`: the filled pre- and post-prompts, one description per
+    /// series, and the normalised series cut to the checkpoint's `maxLength`.
+    public func prompt(for input: TSLMInput) throws -> TSLMPrompt {
+        let prompt = configuration.prompt
+        let series = configuration.series
+
+        var values = input.context
+        var postTemplate = prompt.post
+        if input.answerOptions.isEmpty, let postWithoutOptions = prompt.postWithoutOptions {
+            postTemplate = postWithoutOptions
+        } else {
+            values["answerOptions"] = input.answerOptions.joined(separator: prompt.answerOptionSeparator ?? ", ")
+        }
+
+        let descriptions = try input.series.enumerated().map { index, timeSeries in
+            if let description = timeSeries.description {
+                return description
+            }
+            var fields = [
+                "mean": String(format: series.statFormat, timeSeries.mean),
+                "std": String(format: series.statFormat, timeSeries.std)
+            ]
+            if let name = timeSeries.name {
+                fields["name"] = name
+            } else if let names = series.names, index < names.count {
+                fields["name"] = names[index]
+            }
+            return try Self.fill(series.description, with: fields)
+        }
+
+        return TSLMPrompt(
+            pre: try Self.fill(prompt.pre, with: values),
+            seriesDescriptions: descriptions,
+            series: input.series.map { Array($0.values.prefix(series.maxLength)) },
+            post: try Self.fill(postTemplate, with: values)
+        )
+    }
+
+    /// Replaces each `{name}` in `template` with `values[name]` in one pass, so values are never re-expanded.
+    static func fill(_ template: String, with values: [String: String]) throws -> String {
+        let placeholder = try NSRegularExpression(pattern: #"\{([A-Za-z][A-Za-z0-9]*)\}"#)
+        var result = ""
+        var rest = template.startIndex
+        for match in placeholder.matches(in: template, range: NSRange(template.startIndex..., in: template)) {
+            guard let whole = Range(match.range, in: template), let key = Range(match.range(at: 1), in: template) else {
+                continue
+            }
+            guard let value = values[String(template[key])] else {
+                throw TSLMError.missingTemplateValue(String(template[key]))
+            }
+            result += template[rest ..< whole.lowerBound] + value
+            rest = whole.upperBound
+        }
+        return result + template[rest...]
+    }
+}
+
+/// What the model sees for one input: the text before the series, a description in front of each
+/// series, the normalised series, and the text after them.
+public struct TSLMPrompt: Sendable {
+    public var pre: String
+    public var seriesDescriptions: [String]
+    public var series: [[Float]]
+    public var post: String
+
+    /// The texts are trimmed like OpenTSLM's `QADataset._format_sample` does before tokenising:
+    /// the checkpoints were trained on stripped text, and a stray newline or trailing space derails
+    /// greedy decoding (Sleep-EDF: 45% instead of 85%).
+    public init(pre: String, seriesDescriptions: [String], series: [[Float]], post: String) {
+        self.pre = pre.trimmingCharacters(in: .whitespacesAndNewlines)
+        self.seriesDescriptions = seriesDescriptions
+        self.series = series
+        self.post = post.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    /// The prompt as text, with each series shown by its description only.
+    public var text: String {
+        ([pre] + seriesDescriptions + [post]).joined(separator: "\n")
+    }
+}
+
 /// Errors that PocketTSLM throws.
 public enum TSLMError: LocalizedError {
     case unsupportedCheckpointFormat(String)
