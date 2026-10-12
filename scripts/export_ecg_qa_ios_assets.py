@@ -124,12 +124,7 @@ def main() -> None:
     parser.add_argument("--opentslm-src", default=str(DEFAULT_OPENTSLM_SRC))
     parser.add_argument(
         "--out-dir",
-        default=str(
-            Path(__file__).resolve().parents[1]
-            / "PocketTSLM"
-            / "Supporting Files"
-            / "OpenTSLM"
-        ),
+        default=str(Path(__file__).resolve().parents[1] / "Tests" / "UITests" / "EvalData"),
     )
     args = parser.parse_args()
 
