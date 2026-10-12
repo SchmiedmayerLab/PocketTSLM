@@ -1,0 +1,21 @@
+#
+# This source file is part of the Template Repository open-source project
+#
+# SPDX-FileCopyrightText: 2026 Schmiedmayer Lab and the project authors (see CONTRIBUTORS.md)
+#
+# SPDX-License-Identifier: MIT
+#
+
+# GitHub Actions is the one ecosystem every repository has. Add the ecosystem for this project's
+# language to the same group so all updates arrive in one weekly pull request.
+
+version: 2
+multi-ecosystem-groups:
+  weekly-dependencies:
+    schedule:
+      interval: "weekly"
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    patterns: ["*"]
+    multi-ecosystem-group: "weekly-dependencies"

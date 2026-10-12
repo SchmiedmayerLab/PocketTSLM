@@ -1,0 +1,16 @@
+version = 1
+
+# Deliberately empty of annotations.
+#
+# Every file in this repository carries its own SPDX header. A blanket `path = ["**"]` annotation
+# would make `reuse lint` pass without anyone writing one, so it is not used here.
+#
+# Add an entry only for files that genuinely cannot carry a header — binaries, generated output,
+# vendored dependencies — and give vendored files their real licence rather than this project's:
+#
+#     [[annotations]]
+#     path = ["assets/logo.png"]
+#     SPDX-FileCopyrightText = "2026 Schmiedmayer Lab and the project authors (see CONTRIBUTORS.md)"
+#     SPDX-License-Identifier = "MIT"
+#
+# If several entries match the same path, the last one wins.

@@ -1,0 +1,16 @@
+#
+# This source file is part of the Template Repository open-source project
+#
+# SPDX-FileCopyrightText: 2026 Schmiedmayer Lab and the project authors (see CONTRIBUTORS.md)
+#
+# SPDX-License-Identifier: MIT
+#
+
+# macOS
+.DS_Store
+
+# Editors
+.idea/
+*.swp
+
+# Add the ignores your language and tooling need below.
