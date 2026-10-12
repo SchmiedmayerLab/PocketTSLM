@@ -11,7 +11,7 @@ import Foundation
 /// Reads ECG-QA chain-of-thought exports of OpenTSLM's `ECGQACoTQADataset`: CSV rows (question,
 /// answer, template, ECG id, rationale, clinical context) and, per ECG, a waveform JSON file with
 /// the leads and descriptions that OpenTSLM's loader produced.
-public final class ECGQACoTDataset {
+public struct ECGQACoTDataset {
     private struct Row {
         let ecgId: Int
         let templateId: Int
@@ -21,29 +21,13 @@ public final class ECGQACoTDataset {
         let rationale: String
     }
 
-    private struct WaveformEntry: Decodable {
-        let timeSeries: [[Float]]
-        let timeSeriesText: [String]
-
-        enum CodingKeys: String, CodingKey {
-            case timeSeries = "time_series"
-            case timeSeriesText = "time_series_text"
-        }
-    }
-
     private let rows: [Row]
     private let waveformsDirectory: URL
-    private var waveformCache: [String: WaveformEntry] = [:]
     private let templateAnswers: [Int: [String]]
 
-    public init(
-        csvURL: URL,
-        waveformsDirectory: URL,
-        templateAnswersURL: URL? = nil,
-        maxRows: Int = 5000
-    ) throws {
+    public init(csvURL: URL, waveformsDirectory: URL, templateAnswersURL: URL? = nil) throws {
         self.waveformsDirectory = waveformsDirectory
-        self.rows = try Self.readRows(from: csvURL, maxRows: maxRows)
+        self.rows = try Self.readRows(from: csvURL)
         if let templateAnswersURL {
             self.templateAnswers = try Self.readTemplateAnswers(from: templateAnswersURL)
         } else {
@@ -75,50 +59,25 @@ public final class ECGQACoTDataset {
         )
     }
 
-    private func loadWaveform(for ecgId: Int) throws -> WaveformEntry {
-        let key = String(ecgId)
-        if let cached = waveformCache[key] {
-            return cached
-        }
-
-        guard let entry = loadWaveformFile(for: key) else {
+    /// The leads and their descriptions in `<ecg_id>.json`.
+    private func loadWaveform(for ecgId: Int) throws -> (timeSeries: [[Float]], timeSeriesText: [String]) {
+        let url = waveformsDirectory.appendingPathComponent("\(ecgId).json")
+        guard let data = try? Data(contentsOf: url),
+              let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let series = object["time_series"] as? [[Double]],
+              let text = object["time_series_text"] as? [String]
+        else {
             throw NSError(
                 domain: "ECGQACoTDataset",
                 code: 5,
                 userInfo: [
                     NSLocalizedDescriptionKey:
-                        "Missing PTB-XL waveform for ecg_id \(ecgId) under \(waveformsDirectory.path). "
+                        "Missing or invalid PTB-XL waveform for ecg_id \(ecgId) under \(waveformsDirectory.path). "
                         + "Run scripts/export_ecg_qa_ios_assets.py to regenerate loader waveforms.",
                 ]
             )
         }
-        waveformCache[key] = entry
-        return entry
-    }
-
-    private func loadWaveformFile(for ecgId: String) -> WaveformEntry? {
-        let url = waveformsDirectory.appendingPathComponent("\(ecgId).json")
-        guard FileManager.default.fileExists(atPath: url.path),
-              let data = try? Data(contentsOf: url),
-              let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let rawSeries = object["time_series"] as? [[Any]],
-              let rawText = object["time_series_text"] as? [String]
-        else {
-            return nil
-        }
-
-        guard let series = try? rawSeries.map({ lead in
-            try lead.map { value -> Float in
-                if let f = value as? Float { return f }
-                if let d = value as? Double { return Float(d) }
-                if let i = value as? Int { return Float(i) }
-                throw NSError(domain: "ECGQACoTDataset", code: 7, userInfo: [NSLocalizedDescriptionKey: "Invalid waveform value"])
-            }
-        }) else {
-            return nil
-        }
-
-        return WaveformEntry(timeSeries: series, timeSeriesText: rawText)
+        return (series.map { $0.map(Float.init) }, text)
     }
 
     private static func readTemplateAnswers(from url: URL) throws -> [Int: [String]] {
@@ -138,17 +97,8 @@ public final class ECGQACoTDataset {
         return answers
     }
 
-    private static func readRows(from csvURL: URL, maxRows: Int) throws -> [Row] {
-        guard maxRows > 0 else {
-            throw NSError(domain: "ECGQACoTDataset", code: 8, userInfo: [NSLocalizedDescriptionKey: "maxRows must be > 0"])
-        }
-
-        let handle = try FileHandle(forReadingFrom: csvURL)
-        let prefix = try handle.read(upToCount: 20 * 1024 * 1024) ?? Data()
-        let csvPrefix = String(decoding: prefix, as: UTF8.self)
-        let safePrefix = csvPrefix.prefix(upTo: csvPrefix.lastIndex(of: "\n") ?? csvPrefix.endIndex)
-
-        let records = parseCSV(String(safePrefix))
+    private static func readRows(from csvURL: URL) throws -> [Row] {
+        let records = try CSV.records(at: csvURL)
         guard let header = records.first else {
             throw NSError(domain: "ECGQACoTDataset", code: 1, userInfo: [NSLocalizedDescriptionKey: "CSV has no header"])
         }
@@ -166,9 +116,7 @@ public final class ECGQACoTDataset {
         let clinicalIdx = columnIndex["clinical_context"]
 
         var rows: [Row] = []
-        rows.reserveCapacity(maxRows)
-
-        for record in records.dropFirst() where rows.count < maxRows {
+        for record in records.dropFirst() {
             guard !record.isEmpty else { continue }
             guard questionIdx < record.count,
                   answerIdx < record.count,
@@ -208,67 +156,5 @@ public final class ECGQACoTDataset {
             throw NSError(domain: "ECGQACoTDataset", code: 4, userInfo: [NSLocalizedDescriptionKey: "Invalid ecg_id '\(raw)'"])
         }
         return value
-    }
-
-    private static func parseCSV(_ csv: String) -> [[String]] {
-        var records: [[String]] = []
-        var row: [String] = []
-        var field = ""
-        var insideQuotes = false
-
-        var i = csv.startIndex
-        while i < csv.endIndex {
-            let ch = csv[i]
-            if ch == "\"" {
-                let nextIndex = csv.index(after: i)
-                if insideQuotes && nextIndex < csv.endIndex && csv[nextIndex] == "\"" {
-                    field.append("\"")
-                    i = csv.index(after: nextIndex)
-                    continue
-                }
-                insideQuotes.toggle()
-                i = nextIndex
-                continue
-            }
-
-            if ch == "," && !insideQuotes {
-                row.append(field)
-                field.removeAll(keepingCapacity: true)
-                i = csv.index(after: i)
-                continue
-            }
-
-            // NB: Swift treats "\r\n" as a single Character (grapheme cluster), so a CRLF file
-            // matches neither "\n" nor "\r" and the whole file collapses into one record.
-            if (ch == "\n" || ch == "\r" || ch == "\r\n") && !insideQuotes {
-                row.append(field)
-                field.removeAll(keepingCapacity: true)
-                if !row.isEmpty {
-                    records.append(row)
-                }
-                row.removeAll(keepingCapacity: true)
-
-                if ch == "\r" {
-                    let nextIndex = csv.index(after: i)
-                    if nextIndex < csv.endIndex && csv[nextIndex] == "\n" {
-                        i = csv.index(after: nextIndex)
-                        continue
-                    }
-                }
-
-                i = csv.index(after: i)
-                continue
-            }
-
-            field.append(ch)
-            i = csv.index(after: i)
-        }
-
-        if !field.isEmpty || !row.isEmpty {
-            row.append(field)
-            records.append(row)
-        }
-
-        return records
     }
 }
