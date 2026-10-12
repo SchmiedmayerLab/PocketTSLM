@@ -11,64 +11,40 @@ import MLX
 import MLXLLM
 import MLXLMCommon
 import MLXNN
-import OSLog
+import os
 
 /// Loads OpenTSLM LoRA adapters into an ``EmbeddingLlamaModel`` (MLX ``LoRALinear``).
 ///
 /// Mirrors [OpenTSLMMLX](https://github.com/SchmiedmayerLab/OpenTSLMMLX) ``_apply_lora``:
 /// ``linear_to_lora_layers`` on all transformer projections, rank 16, alpha 32 (scale 2), PEFT transpose.
-public enum OpenTSLMLoRA {
+enum OpenTSLMLoRA {
 
     private static let logger = Logger(subsystem: "PocketTSLM", category: "OpenTSLMLoRA")
 
-    /// Tracks which checkpoint URL is currently loaded into each model instance.
-    /// Allows task switching (ECG ↔ sleep) by re-loading adapter weights without
-    /// repeating the one-time Linear→LoRALinear layer conversion.
-    private static var appliedModelCheckpoints: [ObjectIdentifier: URL] = [:]
+    /// The adapter each base model carries and its shape. The layers are converted to `LoRALinear`
+    /// once, so switching tasks (ECG ↔ sleep) only swaps the adapter weights.
+    private static let applied = OSAllocatedUnfairLock(initialState: [ObjectIdentifier: (checkpoint: URL, shape: Shape)]())
 
-    /// Rank, scale and target projections of the adapters. The defaults are OpenTSLM-SP's:
-    /// rank 16, alpha 32 (scale 2), all seven projections.
-    public struct Shape: Sendable {
-        public var rank: Int
-        public var scale: Float
-        public var keys: Set<String>
-
-        public init(
-            rank: Int = 16,
-            scale: Float = 2,
-            keys: Set<String> = ["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"]
-        ) {
-            self.rank = rank
-            self.scale = scale
-            self.keys = keys
-        }
+    /// Rank, scale and target projections of the adapters.
+    struct Shape: Equatable, Sendable {
+        var rank: Int
+        var scale: Float
+        var keys: Set<String>
     }
 
-    /// Makes `checkpointURL` the active adapter of the container's ``EmbeddingLlamaModel``.
-    ///
-    /// The first call converts the projections to `LoRALinear` once; a later call with another
-    /// checkpoint only swaps the adapter weights, so one loaded base model serves several tasks.
-    public static func applyIfNeeded(
-        to container: ModelContainer,
-        checkpointURL: URL,
-        shape: Shape = Shape()
-    ) async throws {
-        try await container.perform { context in
-            guard let llama = context.model as? EmbeddingLlamaModel else {
-                return
-            }
-            try applyIfNeeded(to: llama, checkpointURL: checkpointURL, shape: shape)
-        }
-    }
-
-    static func applyIfNeeded(to llama: EmbeddingLlamaModel, checkpointURL: URL, shape: Shape = Shape()) throws {
+    /// Makes `checkpointURL` the active adapter of `llama`. Call it inside the base model's
+    /// `ModelContainer.perform`, which serialises the calls for one model.
+    static func applyIfNeeded(to llama: EmbeddingLlamaModel, checkpointURL: URL, shape: Shape) throws {
         let modelID = ObjectIdentifier(llama)
-
-        if appliedModelCheckpoints[modelID] == checkpointURL {
+        let current = applied.withLock { $0[modelID] }
+        if current?.checkpoint == checkpointURL {
             return
         }
-
-        if appliedModelCheckpoints[modelID] == nil {
+        if let current, current.shape != shape {
+            throw TSLMError.invalidCheckpoint(
+                "its LoRA adapter (rank \(shape.rank)) differs from the one already on the base model (rank \(current.shape.rank))")
+        }
+        if current == nil {
             convertOpenTSLMLoRALayers(on: llama, shape: shape)
         }
 
@@ -81,8 +57,7 @@ public enum OpenTSLMLoRA {
         try llama.update(parameters: parameters, verify: .noUnusedKeys)
         eval(llama)
 
-        appliedModelCheckpoints[modelID] = checkpointURL
-
+        applied.withLock { $0[modelID] = (checkpointURL, shape) }
         logger.info("OpenTSLM LoRA applied from \(checkpointURL.lastPathComponent, privacy: .public)")
     }
 
