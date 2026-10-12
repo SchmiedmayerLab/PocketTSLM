@@ -11,7 +11,9 @@
 // (9bff95ca5f0b9e8c021acc4d71a2bbe4a7441631). Upstream's building blocks (`Attention`, `MLP`,
 // `TransformerBlock`, `LlamaModelInner`) are private, so only a copy can change the forward pass.
 // The code is upstream's, with the types renamed `EmbeddingLlama*` so they do not collide with
-// `MLXLLM.LlamaModel`, apart from the functional changes that `// PATCH(pockettslm):` marks.
+// `MLXLLM.LlamaModel`, apart from these functional changes, which `// PATCH(pockettslm):` marks:
+//  1. Embedding input: `EmbeddingLlamaModelInner` uses a given `inputEmbedding` in place of the
+//     token lookup, and `EmbeddingLlamaModel` exposes it through `EmbeddingPrimedLanguageModel`.
 // `registerModelTypes()` at the end is PocketTSLM's own.
 
 import Foundation
@@ -289,8 +291,19 @@ private class EmbeddingLlamaModelInner: Module {
         self.norm = RMSNorm(dimensions: args.hiddenSize, eps: args.rmsNormEps)
     }
 
-    func callAsFunction(_ inputs: MLXArray, cache: [KVCache]? = nil) -> MLXArray {
-        var h = embedTokens(inputs)
+    // PATCH(pockettslm): an optional `inputEmbedding` replaces the token-embedding lookup. Llama,
+    // unlike Gemma, does not scale its embeddings, so there is nothing else to reconcile.
+    func callAsFunction(
+        _ inputs: MLXArray?, cache: [KVCache]? = nil, inputEmbedding: MLXArray? = nil
+    ) -> MLXArray {
+        var h: MLXArray
+        if let inputEmbedding {
+            h = inputEmbedding
+        } else if let inputs {
+            h = embedTokens(inputs)
+        } else {
+            fatalError("EmbeddingLlamaModelInner requires either inputs or inputEmbedding")
+        }
 
         let mask = createAttentionMask(h: h, cache: cache)
 
@@ -322,7 +335,12 @@ public class EmbeddingLlamaModel: Module, LLMModel, KVCacheDimensionProvider {
     }
 
     public func callAsFunction(_ inputs: MLXArray, cache: [KVCache]?) -> MLXArray {
-        let out = model(inputs, cache: cache)
+        forward(inputs, cache: cache, inputEmbedding: nil)
+    }
+
+    // PATCH(pockettslm): one forward pass for token and embedding inputs.
+    private func forward(_ inputs: MLXArray?, cache: [KVCache]?, inputEmbedding: MLXArray?) -> MLXArray {
+        let out = model(inputs, cache: cache, inputEmbedding: inputEmbedding)
         if let lmHead {
             return lmHead(out)
         } else {
@@ -352,6 +370,15 @@ public class EmbeddingLlamaModel: Module, LLMModel, KVCacheDimensionProvider {
         } catch {
             return NoSystemMessageGenerator()
         }
+    }
+
+    // PATCH(pockettslm): the token-embedding lookup, for building embedding inputs.
+    /// Token-embedding lookup, exposed so callers can build interleaved
+    /// soft-prompt sequences (text token embeddings + projected time-series
+    /// embeddings) before priming the decoder via ``inputEmbedding``.
+    /// `ids` is an integer index array, e.g. shape `[B, T]`; result is `[B, T, hidden]`.
+    public func tokenEmbeddings(_ ids: MLXArray) -> MLXArray {
+        model.embedTokens(ids)
     }
 }
 
@@ -487,6 +514,19 @@ public struct EmbeddingLlamaConfiguration: Codable, Sendable {
 extension EmbeddingLlamaModel: LoRAModel {
     public func loraLinearLayers() -> LoRALinearLayers {
         model.layers.map { ($0.attention, ["q_proj", "v_proj"]) }
+    }
+}
+
+// PATCH(pockettslm): decoding primed with embeddings, as `MLXEmbeddingGenerator` drives it.
+extension EmbeddingLlamaModel: EmbeddingPrimedLanguageModel {
+    public func makeCache() -> [KVCache] {
+        newCache(parameters: nil)
+    }
+
+    public func callAsFunction(
+        _ inputs: MLXArray?, cache: [KVCache], inputEmbedding: MLXArray?
+    ) throws -> MLXArray {
+        forward(inputs, cache: cache, inputEmbedding: inputEmbedding)
     }
 }
 
