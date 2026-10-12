@@ -14,6 +14,9 @@
 // `MLXLLM.LlamaModel`, apart from these functional changes, which `// PATCH(pockettslm):` marks:
 //  1. Embedding input: `EmbeddingLlamaModelInner` uses a given `inputEmbedding` in place of the
 //     token lookup, and `EmbeddingLlamaModel` exposes it through `EmbeddingPrimedLanguageModel`.
+//  2. RoPE: the rope type is read from `rope_scaling["rope_type"]` as well as `["type"]`, and
+//     integer values are accepted, so Llama 3.x configs get the llama3 frequency scaling that
+//     upstream silently skips.
 // `registerModelTypes()` at the end is PocketTSLM's own.
 
 import Foundation
@@ -103,17 +106,29 @@ private class DynamicNTKScalingRoPE: Module {
             return
         }
 
+        // PATCH(pockettslm): MLXLMCommon's StringOrNumber decodes integers (e.g.
+        // `original_max_position_embeddings: 8192`) as `.int`, not `.float`. The upstream
+        // `case .float = …` pattern match therefore fails on that field, the whole guard fails,
+        // and it silently falls back to default RoPE — skipping llama3 scaling even when
+        // ropeType == "llama3". Accept both int and float.
+        func number(_ value: StringOrNumber?) -> Float? {
+            switch value {
+            case .float(let f): return f
+            case .int(let i): return Float(i)
+            default: return nil
+            }
+        }
+
         guard let ropeScaling = ropeScaling,
-            case .float(let factor) = ropeScaling["factor"],
-            case .float(let lowFreqFactor) = ropeScaling["low_freq_factor"] ?? .float(1.0),
-            case .float(let highFreqFactor) = ropeScaling["high_freq_factor"] ?? .float(4.0),
-            case .float(let oldContextLen) = ropeScaling["original_max_position_embeddings"]
-                ?? .float(8192),
+            let factor = number(ropeScaling["factor"]),
             let base
         else {
             freqs = nil
             return
         }
+        let lowFreqFactor = number(ropeScaling["low_freq_factor"]) ?? 1.0
+        let highFreqFactor = number(ropeScaling["high_freq_factor"]) ?? 4.0
+        let oldContextLen = number(ropeScaling["original_max_position_embeddings"]) ?? 8192
 
         let lowFreqWavelen = oldContextLen / lowFreqFactor
         let highFreqWavelen = oldContextLen / highFreqFactor
@@ -183,7 +198,12 @@ private class Attention: Module {
             base: args.ropeTheta,
             scale: 1.0,
             ropeType: {
-                if case .string(let value) = args.ropeScaling?["type"] {
+                // PATCH(pockettslm): HF Llama-3.x configs key this as `rope_type` (e.g.
+                // "llama3"); older configs used `type`. Upstream mlx-swift only checks `type`,
+                // so for a Llama-3.2 `rope_scaling` it silently falls back to "default" and
+                // skips the llama3 frequency scaling — diverging from mlx_lm / transformers.
+                let ropeScalingType = args.ropeScaling?["rope_type"] ?? args.ropeScaling?["type"]
+                if case .string(let value) = ropeScalingType {
                     return value
                 } else {
                     return "default"
