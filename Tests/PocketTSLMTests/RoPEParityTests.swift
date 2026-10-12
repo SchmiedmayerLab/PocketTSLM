@@ -8,8 +8,10 @@ import MLXFast
 /// went live but the generated text didn't change from the default-RoPE output — suggesting
 /// the custom-`freqs` RoPE path (never exercised before the fix) isn't taking effect.
 ///
-/// `rope_io.safetensors` holds a fixed input, the llama3 freqs, and the Python rope outputs
-/// (llama3 via freqs, and default via base) at offset 3500 (where the two differ by ~7.8).
+/// `rope_io.safetensors` (`generate_parity_fixtures.py rope`) holds a fixed input, the llama3 freqs,
+/// and the exact RoPE outputs, computed in float64, for the llama3 freqs and for the default base,
+/// at offset 3500, where the two differ by about 7.8. float32 RoPE stays within 7e-4 of exact there,
+/// though MLX versions differ from each other by up to 1e-3.
 final class RoPEParityTests: XCTestCase {
 
     override class func setUp() {
@@ -24,7 +26,7 @@ final class RoPEParityTests: XCTestCase {
     func testFastRoPEAppliesCustomFreqs() throws {
         let ioURL = fixturesURL.appendingPathComponent("rope_io.safetensors")
         guard FileManager.default.fileExists(atPath: ioURL.path) else {
-            throw XCTSkip("rope_io.safetensors missing — run the Python rope generator first")
+            throw XCTSkip("rope_io.safetensors missing — run generate_parity_fixtures.py rope")
         }
         try Device.withDefaultDevice(.cpu) {
             let a = try loadArrays(url: ioURL)
@@ -47,14 +49,14 @@ final class RoPEParityTests: XCTestCase {
                 let d = (p - q).abs().max(keepDims: false); eval(d); return d.item(Float.self)
             }
 
-            let llama3VsPy = maxDiff(swiftLlama3, a["out_llama3"]!)
-            let defaultVsPy = maxDiff(swiftDefault, a["out_default"]!)
+            let llama3VsExact = maxDiff(swiftLlama3, a["out_llama3"]!)
+            let defaultVsExact = maxDiff(swiftDefault, a["out_default"]!)
             let llama3VsDefault = maxDiff(swiftLlama3, swiftDefault)
-            print("RoPE: swiftLlama3-vs-python=\(llama3VsPy)  swiftDefault-vs-python=\(defaultVsPy)  swiftLlama3-vs-swiftDefault=\(llama3VsDefault)")
+            print("RoPE: swiftLlama3-vs-exact=\(llama3VsExact)  swiftDefault-vs-exact=\(defaultVsExact)  swiftLlama3-vs-swiftDefault=\(llama3VsDefault)")
 
-            // If the custom-freqs path works, swiftLlama3 matches Python's llama3 rope…
-            XCTAssertLessThan(llama3VsPy, 1e-3, "MLXFast.RoPE custom freqs ≠ Python mx.fast.rope llama3")
-            XCTAssertLessThan(defaultVsPy, 1e-3, "MLXFast.RoPE default ≠ Python default")
+            // If the custom-freqs path works, swiftLlama3 matches the exact llama3 rope…
+            XCTAssertLessThan(llama3VsExact, 1e-3, "MLXFast.RoPE with custom freqs ≠ exact llama3 RoPE")
+            XCTAssertLessThan(defaultVsExact, 1e-3, "MLXFast.RoPE ≠ exact default RoPE")
             // …and differs from the default path (proves freqs aren't being ignored).
             XCTAssertGreaterThan(llama3VsDefault, 1.0, "MLXFast.RoPE ignored custom freqs (== default)")
         }

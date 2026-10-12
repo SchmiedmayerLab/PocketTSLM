@@ -10,7 +10,8 @@
 # dependencies = ["mlx==0.21.1", "numpy", "safetensors"]
 # ///
 
-"""Writes the encoder and projector parity fixtures of the Swift tests with the MLX Python reference.
+"""Writes the parity fixtures of the Swift tests: encoder and projector outputs of the MLX Python
+reference, and exact RoPE outputs.
 
 The reference is the `src` folder of an OpenTSLMMLX checkout. mlx 0.21.1 is the release closest to
 the MLX core (0.21.0) of mlx-swift 0.21.3. From the repository root:
@@ -19,12 +20,14 @@ the MLX core (0.21.0) of mlx-swift 0.21.3. From the repository root:
     uv run Tests/PocketTSLMTests/generate_parity_fixtures.py tiny
     uv run Tests/PocketTSLMTests/generate_parity_fixtures.py real \\
         --checkpoint Tests/UITests/Checkpoints/llama-3.2-1b-ecg-sp-mlx --data Tests/UITests/EvalData
+    uv run Tests/PocketTSLMTests/generate_parity_fixtures.py rope
 
 `tiny` gives a small encoder and projector seeded random weights and writes them with an input and
 the reference outputs (`tiny_*.safetensors`, a few kB) for the offline tests. `real` runs the ECG
 checkpoint on the first ECG-QA test row and writes the input and a strided subsample of the outputs
 (`real_ecg_parity.safetensors`). The integration tests load the checkpoint themselves, so no real
-weights are committed.
+weights are committed. `rope` writes RoPE outputs at a long offset, computed in float64
+(`rope_io.safetensors`).
 """
 
 import argparse
@@ -53,7 +56,10 @@ PROJECTED_STRIDES = (1, 10, 64)
 
 def save(arrays, name):
     # Contiguous copies: safetensors 0.8.0 writes the raw buffer of non-contiguous arrays.
-    arrays = {key: np.ascontiguousarray(value, dtype=np.float32) for key, value in arrays.items()}
+    arrays = {
+        key: np.ascontiguousarray(value, dtype=np.float32 if value.dtype.kind == "f" else value.dtype)
+        for key, value in arrays.items()
+    }
     save_file(arrays, str(FIXTURES / name))
     print(f"wrote {name}: " + ", ".join(f"{key} {list(value.shape)}" for key, value in arrays.items()))
 
@@ -118,6 +124,41 @@ def real(arguments):
     )
 
 
+def rope(_):
+    """At offset 3500 the float32 RoPE of different MLX versions differs by up to 1e-3, but each stays
+    within 7e-4 of the exact value. So the reference is exact: float64, rounded to float32 once."""
+    rng = np.random.default_rng(0)
+    dims, offset, base = 64, 3500, 500_000.0
+    x = rng.standard_normal((1, 4, 8, dims)).astype(np.float32)
+
+    # Llama 3.2's `rope_scaling`, turned into periods as `EmbeddingLlamaModel`'s RoPE does.
+    factor, low_freq_factor, high_freq_factor, old_context = 32.0, 1.0, 4.0, 8192.0
+    periods = base ** (np.arange(0, dims, 2) / dims)
+    wavelengths = 2 * np.pi * periods
+    scaled = np.where(wavelengths > old_context / low_freq_factor, periods * factor, periods)
+    medium = (wavelengths > old_context / high_freq_factor) & (wavelengths < old_context / low_freq_factor)
+    smooth = (old_context / wavelengths - low_freq_factor) / (high_freq_factor - low_freq_factor)
+    llama3 = np.where(medium, scaled / ((1 - smooth) / factor + smooth), scaled).astype(np.float32)
+
+    def exact(angular_frequencies):
+        theta = (offset + np.arange(x.shape[-2]))[:, None] * angular_frequencies[None, :]
+        first, second = x[..., : dims // 2].astype(np.float64), x[..., dims // 2 :].astype(np.float64)
+        return np.concatenate(
+            [first * np.cos(theta) - second * np.sin(theta), first * np.sin(theta) + second * np.cos(theta)], axis=-1
+        )
+
+    save(
+        {
+            "x": x,
+            "llama3_freqs": llama3,
+            "out_default": exact(base ** (-np.arange(0, dims, 2) / dims)),
+            "out_llama3": exact(1 / llama3.astype(np.float64)),
+            "meta": np.array([dims, offset], dtype=np.int32),
+        },
+        "rope_io.safetensors",
+    )
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     commands = parser.add_subparsers(required=True)
@@ -126,6 +167,7 @@ def main():
     command.add_argument("--checkpoint", type=Path, required=True, help="converted ECG checkpoint folder")
     command.add_argument("--data", type=Path, required=True, help="folder with the ECG-QA test export")
     command.set_defaults(run=real)
+    commands.add_parser("rope", help="exact RoPE outputs at a long offset").set_defaults(run=rope)
     arguments = parser.parse_args()
 
     mx.set_default_device(mx.cpu)
