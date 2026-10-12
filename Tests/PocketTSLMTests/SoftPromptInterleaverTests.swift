@@ -4,11 +4,6 @@ import MLX
 
 final class SoftPromptInterleaverTests: XCTestCase {
 
-    override class func setUp() {
-        super.setUp()
-        Device.setDefault(device: .cpu)
-    }
-
     func testPadAndInterleaveBatch() {
         Device.withDefaultDevice(.cpu) {
             let sample1 = SoftPromptSample(

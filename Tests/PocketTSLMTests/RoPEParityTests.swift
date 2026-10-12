@@ -14,11 +14,6 @@ import MLXFast
 /// though MLX versions differ from each other by up to 1e-3.
 final class RoPEParityTests: XCTestCase {
 
-    override class func setUp() {
-        super.setUp()
-        Device.setDefault(device: .cpu)
-    }
-
     private var fixturesURL: URL {
         URL(fileURLWithPath: #filePath).deletingLastPathComponent().appendingPathComponent("Fixtures")
     }

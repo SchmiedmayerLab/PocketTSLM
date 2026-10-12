@@ -14,11 +14,6 @@ import XCTest
 /// app's copy that `scripts/fetch_assets.sh` fills, else download it from Hugging Face.
 final class RealECGParityTests: XCTestCase {
 
-    override class func setUp() {
-        super.setUp()
-        Device.setDefault(device: .cpu)
-    }
-
     private var fixturesURL: URL {
         URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()

@@ -5,11 +5,6 @@ import MLXRandom
 
 final class MLPProjectorTests: XCTestCase {
 
-    override class func setUp() {
-        super.setUp()
-        Device.setDefault(device: .cpu)
-    }
-
     func testOutputShape() {
         Device.withDefaultDevice(.cpu) {
             let projector = MLPProjector(inputDim: 8, outputDim: 16)

@@ -5,14 +5,6 @@ import MLXRandom
 
 final class TransformerCNNEncoderTests: XCTestCase {
 
-    // Runs once before any test instance is created — set CPU before the
-    // @TaskLocal default device is first evaluated (MLX's GPU init would crash
-    // in the SPM test runner which has no Metal bundle).
-    override class func setUp() {
-        super.setUp()
-        Device.setDefault(device: .cpu)
-    }
-
     // Fixtures directory sits next to this file.
     private var fixturesURL: URL {
         URL(fileURLWithPath: #filePath)
