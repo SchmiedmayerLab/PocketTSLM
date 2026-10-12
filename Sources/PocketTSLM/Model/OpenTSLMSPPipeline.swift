@@ -1,13 +1,21 @@
+//
+// This source file is part of the PocketTSLM open-source project
+//
+// SPDX-FileCopyrightText: 2026 Schmiedmayer Lab and the project authors (see CONTRIBUTORS.md)
+//
+// SPDX-License-Identifier: MIT
+//
+
 import Foundation
 import MLX
 
-public final class OpenTSLMSPPipeline {
+final class OpenTSLMSPPipeline {
 
-    public let encoder: TransformerCNNEncoder
-    public let projector: MLPProjector
-    public let patchSize: Int
+    let encoder: TransformerCNNEncoder
+    let projector: MLPProjector
+    let patchSize: Int
 
-    public init(hiddenSize: Int = 2048, patchSize: Int = 4, maxPatches: Int = 2600) {
+    init(hiddenSize: Int = 2048, patchSize: Int = 4, maxPatches: Int = 2600) {
         self.patchSize = patchSize
         self.encoder = TransformerCNNEncoder(
             transformerInputDim: 128,
@@ -17,12 +25,12 @@ public final class OpenTSLMSPPipeline {
         self.projector = MLPProjector(inputDim: 128, outputDim: hiddenSize)
     }
 
-    public func loadWeights(encoderURL: URL, projectorURL: URL) throws {
+    func loadWeights(encoderURL: URL, projectorURL: URL) throws {
         try encoder.loadWeights(from: encoderURL)
         try projector.loadWeights(from: projectorURL)
     }
 
-    public func projectTimeSeries(_ seriesBatch: [[Float]]) -> [MLXArray] {
+    func projectTimeSeries(_ seriesBatch: [[Float]]) -> [MLXArray] {
         guard !seriesBatch.isEmpty else { return [] }
 
         let maxLength = paddedLength(for: seriesBatch)

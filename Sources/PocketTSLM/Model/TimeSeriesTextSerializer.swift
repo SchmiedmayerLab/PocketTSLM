@@ -25,10 +25,10 @@ import Foundation
 /// space-separate. Examples (verified against the Python reference):
 /// `0.12 -> "012"`, `-1.453 -> "-145"`, `2.3 -> "230"`, `0.0 -> "000"`,
 /// `-0.05 -> "-005"`, `12.7 -> "1270"`.
-public enum TimeSeriesTextSerializer {
+enum TimeSeriesTextSerializer {
 
     /// Serialize one value the way OpenTSLM's formatter does.
-    public static func format(_ value: Float) -> String {
+    static func format(_ value: Float) -> String {
         // `%.2f` rounds half-to-even like Python's `:.2f`; ties are vanishingly
         // unlikely on z-normalized float data, so the two agree in practice.
         let digits = String(format: "%.2f", value).replacingOccurrences(of: ".", with: "")
@@ -36,7 +36,7 @@ public enum TimeSeriesTextSerializer {
     }
 
     /// Serialize a 1D series to a single space-separated string.
-    public static func serialize(_ series: [Float]) -> String {
+    static func serialize(_ series: [Float]) -> String {
         series.map(format).joined(separator: " ")
     }
 }

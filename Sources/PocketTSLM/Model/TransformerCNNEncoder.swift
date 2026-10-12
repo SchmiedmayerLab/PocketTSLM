@@ -1,3 +1,11 @@
+//
+// This source file is part of the PocketTSLM open-source project
+//
+// SPDX-FileCopyrightText: 2026 Schmiedmayer Lab and the project authors (see CONTRIBUTORS.md)
+//
+// SPDX-License-Identifier: MIT
+//
+
 import Foundation
 import MLX
 import MLXNN
@@ -8,7 +16,7 @@ import MLXNN
 ///
 /// Matches `nn.TransformerEncoderLayer(norm_first=False, activation='gelu')`.
 /// Weight keys are identical to the Python module so safetensors files load directly.
-public class TransformerEncoderLayer: Module, UnaryLayer {
+class TransformerEncoderLayer: Module, UnaryLayer {
 
     @ModuleInfo(key: "self_attn") var selfAttn: MultiHeadAttention
     @ModuleInfo(key: "linear1") var linear1: Linear
@@ -16,7 +24,7 @@ public class TransformerEncoderLayer: Module, UnaryLayer {
     @ModuleInfo(key: "norm1") var norm1: LayerNorm
     @ModuleInfo(key: "norm2") var norm2: LayerNorm
 
-    public init(dModel: Int, numHeads: Int, dimFeedforward: Int = 1024) {
+    init(dModel: Int, numHeads: Int, dimFeedforward: Int = 1024) {
         _selfAttn.wrappedValue = MultiHeadAttention(dimensions: dModel, numHeads: numHeads, bias: true)
         _linear1.wrappedValue = Linear(dModel, dimFeedforward)
         _linear2.wrappedValue = Linear(dimFeedforward, dModel)
@@ -29,7 +37,7 @@ public class TransformerEncoderLayer: Module, UnaryLayer {
     /// x = self.norm1(x + self.self_attn(x, x, x))
     /// x = self.norm2(x + self.linear2(nn.gelu(self.linear1(x))))
     /// ```
-    public func callAsFunction(_ x: MLXArray) -> MLXArray {
+    func callAsFunction(_ x: MLXArray) -> MLXArray {
         var x = x
         x = norm1(x + selfAttn(x, keys: x, values: x))
         x = norm2(x + linear2(gelu(linear1(x))))
@@ -43,16 +51,16 @@ public class TransformerEncoderLayer: Module, UnaryLayer {
 ///
 /// Takes raw time series `[B, L]` and produces patch embeddings `[B, N, outputDim]`
 /// where `N = L / patchSize`. Weight keys match the Python module exactly.
-public class TransformerCNNEncoder: Module, UnaryLayer {
+class TransformerCNNEncoder: Module, UnaryLayer {
 
-    public let patchSize: Int
+    let patchSize: Int
 
     @ModuleInfo(key: "patch_embed") var patchEmbed: Conv1d
     @ParameterInfo(key: "pos_embed") var posEmbed: MLXArray
     @ModuleInfo(key: "input_norm") var inputNorm: LayerNorm
     var layers: [TransformerEncoderLayer]
 
-    public init(
+    init(
         outputDim: Int = 128,
         transformerInputDim: Int = 128,
         numHeads: Int = 8,
@@ -88,7 +96,7 @@ public class TransformerCNNEncoder: Module, UnaryLayer {
     /// x = self.input_norm(x)
     /// for layer in self.layers: x = layer(x)
     /// ```
-    public func callAsFunction(_ x: MLXArray) -> MLXArray {
+    func callAsFunction(_ x: MLXArray) -> MLXArray {
         // [B, L] → [B, L, 1]  (channel-last for MLX Conv1d)
         var x = x.expandedDimensions(axis: -1)
         // Conv1d → [B, N, transformerInputDim]
@@ -115,7 +123,7 @@ extension TransformerCNNEncoder {
     /// - `pos_embed`
     /// - `input_norm.weight`, `input_norm.bias`
     /// - `layers.0.self_attn.query_proj.weight`, …
-    public func loadWeights(from url: URL) throws {
+    func loadWeights(from url: URL) throws {
         let arrays = try loadArrays(url: url)
         let params = ModuleParameters.unflattened(arrays)
         try update(parameters: params, verify: .noUnusedKeys)

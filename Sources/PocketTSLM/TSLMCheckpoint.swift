@@ -83,9 +83,9 @@ public struct TSLMCheckpoint: Sendable {
     public let directory: URL
     public let configuration: Configuration
 
-    public var encoderURL: URL { directory.appendingPathComponent("encoder.safetensors") }
-    public var projectorURL: URL { directory.appendingPathComponent("projector.safetensors") }
-    public var loraURL: URL { directory.appendingPathComponent("lora.safetensors") }
+    var encoderURL: URL { directory.appendingPathComponent("encoder.safetensors") }
+    var projectorURL: URL { directory.appendingPathComponent("projector.safetensors") }
+    var loraURL: URL { directory.appendingPathComponent("lora.safetensors") }
 
     /// Reads `config.json` from a checkpoint folder.
     public init(directory: URL) throws {
