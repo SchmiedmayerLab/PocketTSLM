@@ -91,16 +91,6 @@ class HealthDataInterpreter: DefaultInitializable, Module, EnvironmentAccessible
             loadingDetail = Constants.llmModelName
         }
 
-        if Constants.skipLLMLoad {
-            logger.info("setup(): skipping Llama staging/load (HEALTHYLLM_SKIP_LLM_LOAD=1)")
-            await MainActor.run {
-                loaded = true
-                loadingStage = .ready
-                loadingDetail = "Encoder-only (Llama skipped)"
-            }
-            return
-        }
-
         do {
             try await stageLocalModelIfNeeded()
         try await downloadModelWeightsIfNeeded()

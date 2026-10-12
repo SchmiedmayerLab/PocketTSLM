@@ -85,31 +85,6 @@
             value = "0"
             isEnabled = "YES">
          </EnvironmentVariable>
-         <EnvironmentVariable
-            key = "POCKETTSLM_INCLUDE_HARDCODED_ECG"
-            value = "0"
-            isEnabled = "YES">
-         </EnvironmentVariable>
-         <EnvironmentVariable
-            key = "POCKETTSLM_OPEN_TSLM_MAX_SERIES_LENGTH"
-            value = "1000"
-            isEnabled = "YES">
-         </EnvironmentVariable>
-         <EnvironmentVariable
-            key = "POCKETTSLM_OPEN_TSLM_RUN_LLM"
-            value = "0"
-            isEnabled = "YES">
-         </EnvironmentVariable>
-         <EnvironmentVariable
-            key = "POCKETTSLM_SKIP_LLM_LOAD"
-            value = "0"
-            isEnabled = "YES">
-         </EnvironmentVariable>
-         <EnvironmentVariable
-            key = "POCKETTSLM_AUTO_ECG_SAMPLE"
-            value = "1"
-            isEnabled = "YES">
-         </EnvironmentVariable>
       </EnvironmentVariables>
    </LaunchAction>
    <ProfileAction
