@@ -447,7 +447,7 @@ class HealthDataInterpreter: DefaultInitializable, Module, EnvironmentAccessible
     func eegSample() async -> ChatTurn {
         guard let sharedSession else { return ChatTurn(prompt: "EEG sample", response: "LLM session not loaded.") }
         do {
-            let interaction = try await openTSLMInferenceService.sleepSampleInteraction(llmRunner: llmRunner, llmSession: sharedSession)
+            let interaction = try await openTSLMInferenceService.sleepSampleInteraction(llmSession: sharedSession)
             return ChatTurn(prompt: interaction.prompt, response: interaction.response)
         } catch {
             return ChatTurn(prompt: "EEG sample", response: "Failed: \(error.localizedDescription)")
@@ -458,7 +458,7 @@ class HealthDataInterpreter: DefaultInitializable, Module, EnvironmentAccessible
     func ecgSample() async -> ChatTurn {
         guard let sharedSession else { return ChatTurn(prompt: "ECG sample", response: "LLM session not loaded.") }
         do {
-            let interaction = try await openTSLMInferenceService.ecgSampleInteraction(llmRunner: llmRunner, llmSession: sharedSession)
+            let interaction = try await openTSLMInferenceService.ecgSampleInteraction(llmSession: sharedSession)
             return ChatTurn(prompt: interaction.prompt, response: interaction.response)
         } catch {
             return ChatTurn(prompt: "ECG sample", response: "Failed: \(error.localizedDescription)")
@@ -471,7 +471,7 @@ class HealthDataInterpreter: DefaultInitializable, Module, EnvironmentAccessible
         guard let sharedSession else { return ChatTurn(prompt: "EEG eval", response: "LLM session not loaded.") }
         do {
             let summary = try await openTSLMInferenceService.runSleepAccuracyEval(
-                sampleCount: 20, maxTokens: 200, llmRunner: llmRunner, llmSession: sharedSession
+                sampleCount: 20, maxTokens: 200, llmSession: sharedSession
             )
             return ChatTurn(prompt: "Run the Sleep-EDF accuracy eval (20 pinned test samples).", response: summary)
         } catch {
@@ -484,7 +484,7 @@ class HealthDataInterpreter: DefaultInitializable, Module, EnvironmentAccessible
         guard let sharedSession else { return ChatTurn(prompt: "ECG eval", response: "LLM session not loaded.") }
         do {
             let summary = try await openTSLMInferenceService.runECGAccuracyEval(
-                sampleCount: 20, maxTokens: 400, llmRunner: llmRunner, llmSession: sharedSession
+                sampleCount: 20, maxTokens: 400, llmSession: sharedSession
             )
             return ChatTurn(prompt: "Run the ECG-QA accuracy eval (20 bundled test samples).", response: summary)
         } catch {
@@ -511,10 +511,6 @@ class HealthDataInterpreter: DefaultInitializable, Module, EnvironmentAccessible
             let analysis = try await openTSLMInferenceService.runECGInference(
                 voltages: ecg.voltages,
                 samplingFrequency: ecg.samplingFrequency ?? 512.0,
-                classification: ecg.classification,
-                symptomsStatus: ecg.symptomsStatus,
-                averageHeartRate: ecg.averageHeartRate,
-                llmRunner: llmRunner,
                 llmSession: sharedSession
             )
             let recorded = ecg.startDate.formatted(date: .abbreviated, time: .shortened)
@@ -542,7 +538,7 @@ class HealthDataInterpreter: DefaultInitializable, Module, EnvironmentAccessible
         guard let sharedSession else { return ChatTurn(prompt: "\(label) variance", response: "LLM session not loaded.") }
         do {
             let summary = try await openTSLMInferenceService.runRepeatedContextEconomics(
-                ecg: ecg, repeats: 5, llmRunner: llmRunner, llmSession: sharedSession
+                ecg: ecg, repeats: 5, llmSession: sharedSession
             )
             return ChatTurn(prompt: "Run the \(label) context-economics sweep 5× and report variance.", response: summary)
         } catch {
@@ -555,7 +551,7 @@ class HealthDataInterpreter: DefaultInitializable, Module, EnvironmentAccessible
         guard let sharedSession else { return ChatTurn(prompt: "EEG benchmark", response: "LLM session not loaded.") }
         do {
             let summary = try await openTSLMInferenceService.runContextEconomicsBenchmark(
-                maxTokens: 80, maxPromptPositions: 4300, llmRunner: llmRunner, llmSession: sharedSession
+                maxTokens: 80, maxPromptPositions: 4300, llmSession: sharedSession
             )
             return ChatTurn(prompt: "Run the EEG (sleep) context-economics benchmark.", response: summary)
         } catch {
@@ -568,7 +564,7 @@ class HealthDataInterpreter: DefaultInitializable, Module, EnvironmentAccessible
         guard let sharedSession else { return ChatTurn(prompt: "ECG benchmark", response: "LLM session not loaded.") }
         do {
             let summary = try await openTSLMInferenceService.runContextEconomicsBenchmarkECG(
-                maxTokens: 80, maxPromptPositions: 4300, llmRunner: llmRunner, llmSession: sharedSession
+                maxTokens: 80, maxPromptPositions: 4300, llmSession: sharedSession
             )
             return ChatTurn(prompt: "Run the 12-lead ECG context-economics benchmark.", response: summary)
         } catch {

@@ -11,12 +11,11 @@ import MLX
 import OSLog
 import PocketTSLM
 import Spezi
-import SpeziLLM
 import SpeziLLMLocal
 
 @Observable
 class OpenTSLMInferenceService: DefaultInitializable, Module, EnvironmentAccessible {
-    @ObservationIgnored private let logger = Logger(subsystem: "HealthyLLM", category: "OpenTSLMInferenceService")
+    @ObservationIgnored private let logger = Logger(subsystem: "PocketTSLM", category: "OpenTSLMInferenceService")
 
     required init() { }
 
@@ -33,7 +32,6 @@ class OpenTSLMInferenceService: DefaultInitializable, Module, EnvironmentAccessi
     /// returning the prompt and generated answer separately.
     func sleepSampleInteraction(
         sampleIndex: Int = 0,
-        llmRunner: LLMRunner,
         llmSession: LLMLocalSession
     ) async throws -> SampleInteraction {
         let model = try await bundledModel(BundledAssets.sleepCheckpoint, on: llmSession)
@@ -43,7 +41,6 @@ class OpenTSLMInferenceService: DefaultInitializable, Module, EnvironmentAccessi
     /// 12-lead ECG-QA single-sample interaction (bundled test row) with the ECG checkpoint.
     func ecgSampleInteraction(
         sampleIndex: Int = 0,
-        llmRunner: LLMRunner,
         llmSession: LLMLocalSession
     ) async throws -> SampleInteraction {
         let model = try await bundledModel(BundledAssets.ecgCheckpoint, on: llmSession)
@@ -67,10 +64,6 @@ class OpenTSLMInferenceService: DefaultInitializable, Module, EnvironmentAccessi
     func runECGInference(
         voltages: [Double],
         samplingFrequency: Double,
-        classification: String?,
-        symptomsStatus: String?,
-        averageHeartRate: Double?,
-        llmRunner: LLMRunner?,
         llmSession: LLMLocalSession?
     ) async throws -> String {
         guard !voltages.isEmpty else {
@@ -169,7 +162,6 @@ class OpenTSLMInferenceService: DefaultInitializable, Module, EnvironmentAccessi
         maxTokens: Int = 80,
         contextWindow: Int = 8192,
         maxPromptPositions: Int = 4300,
-        llmRunner: LLMRunner,
         llmSession: LLMLocalSession?
     ) async throws -> String {
         let sweep = lengths ?? (ecg ? [100, 250, 500, 1000] : [100, 250, 500, 1000, 1500])
@@ -275,7 +267,6 @@ class OpenTSLMInferenceService: DefaultInitializable, Module, EnvironmentAccessi
     func runSleepAccuracyEval(
         sampleCount: Int = 20,
         maxTokens: Int = 200,
-        llmRunner: LLMRunner,
         llmSession: LLMLocalSession?
     ) async throws -> String {
         let model = try await bundledModel(BundledAssets.sleepCheckpoint, on: llmSession)
@@ -301,7 +292,6 @@ class OpenTSLMInferenceService: DefaultInitializable, Module, EnvironmentAccessi
         // OpenTSLM's own prediction scripts use 300-400 (and its curriculum eval loop 2000);
         // 200 truncated ECG rationales before they reached `Answer:`, scoring them as wrong.
         maxTokens: Int = 400,
-        llmRunner: LLMRunner,
         llmSession: LLMLocalSession?
     ) async throws -> String {
         let model = try await bundledModel(BundledAssets.ecgCheckpoint, on: llmSession)
@@ -363,7 +353,6 @@ class OpenTSLMInferenceService: DefaultInitializable, Module, EnvironmentAccessi
         maxTokens: Int = 200,
         contextWindow: Int = 8192,
         maxPromptPositions: Int = 2048,
-        llmRunner: LLMRunner,
         llmSession: LLMLocalSession?
     ) async throws -> String {
         let model = try await bundledModel(BundledAssets.sleepCheckpoint, on: llmSession)
@@ -391,7 +380,6 @@ class OpenTSLMInferenceService: DefaultInitializable, Module, EnvironmentAccessi
         maxTokens: Int = 200,
         contextWindow: Int = 8192,
         maxPromptPositions: Int = 4096,
-        llmRunner: LLMRunner,
         llmSession: LLMLocalSession?
     ) async throws -> String {
         let model = try await bundledModel(BundledAssets.ecgCheckpoint, on: llmSession)
