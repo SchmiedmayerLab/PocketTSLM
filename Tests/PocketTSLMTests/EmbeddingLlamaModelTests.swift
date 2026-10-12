@@ -53,8 +53,8 @@ final class EmbeddingLlamaModelTests: XCTestCase {
 
     func testEmbeddingPathMatchesTokenPath() throws {
         let (_, patched) = try models()
-        let expected = patched(Self.tokens, cache: patched.makeCache())
-        let logits = try patched(nil, cache: patched.makeCache(), inputEmbedding: patched.tokenEmbeddings(Self.tokens))
+        let expected = patched(Self.tokens, cache: patched.newCache(parameters: nil))
+        let logits = patched(nil, cache: patched.newCache(parameters: nil), inputEmbedding: patched.tokenEmbeddings(Self.tokens))
         XCTAssertTrue(arrayEqual(logits, expected).item(Bool.self))
     }
 }

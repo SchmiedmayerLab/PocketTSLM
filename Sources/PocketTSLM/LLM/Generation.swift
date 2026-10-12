@@ -74,10 +74,10 @@ extension EmbeddingLlamaModel {
 
         // The prefill runs in chunks of 512 positions into the KV cache. The logits are the same as
         // in one pass, but peak memory stays bounded: a 12-lead ECG prompt has over 3000 positions.
-        let cache = makeCache()
+        let cache = newCache(parameters: nil)
         var logits = MLXArray([])
         for offset in stride(from: 0, to: promptPositions, by: 512) {
-            logits = try self(nil, cache: cache, inputEmbedding: embedding[0 ..< 1, offset ..< min(offset + 512, promptPositions)])
+            logits = self(nil, cache: cache, inputEmbedding: embedding[0 ..< 1, offset ..< min(offset + 512, promptPositions)])
             eval(logits)
             GPU.clearCache()
         }
@@ -94,7 +94,7 @@ extension EmbeddingLlamaModel {
             if stopTokens.contains(token) {
                 break
             }
-            logits = try self(MLXArray([Int32(token)], [1, 1]), cache: cache, inputEmbedding: nil)
+            logits = self(MLXArray([Int32(token)], [1, 1]), cache: cache, inputEmbedding: nil)
         }
 
         return TSLMGeneration(

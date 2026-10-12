@@ -13,7 +13,7 @@
 // The code is upstream's, with the types renamed `EmbeddingLlama*` so they do not collide with
 // `MLXLLM.LlamaModel`, apart from these functional changes, which `// PATCH(pockettslm):` marks:
 //  1. Embedding input: `EmbeddingLlamaModelInner` uses a given `inputEmbedding` in place of the
-//     token lookup, and `EmbeddingLlamaModel` exposes it through `EmbeddingPrimedLanguageModel`.
+//     token lookup, and `EmbeddingLlamaModel` exposes it and the token-embedding lookup.
 //  2. RoPE: the rope type is read from `rope_scaling["rope_type"]` as well as `["type"]`, and
 //     integer values are accepted, so Llama 3.x configs get the llama3 frequency scaling that
 //     upstream silently skips.
@@ -537,15 +537,9 @@ extension EmbeddingLlamaModel: LoRAModel {
     }
 }
 
-// PATCH(pockettslm): decoding primed with embeddings, as `MLXEmbeddingGenerator` drives it.
-extension EmbeddingLlamaModel: EmbeddingPrimedLanguageModel {
-    public func makeCache() -> [KVCache] {
-        newCache(parameters: nil)
-    }
-
-    public func callAsFunction(
-        _ inputs: MLXArray?, cache: [KVCache], inputEmbedding: MLXArray?
-    ) throws -> MLXArray {
+// PATCH(pockettslm): a forward pass from tokens or embeddings, for decoding primed with a soft prompt.
+extension EmbeddingLlamaModel {
+    func callAsFunction(_ inputs: MLXArray?, cache: [KVCache], inputEmbedding: MLXArray?) -> MLXArray {
         forward(inputs, cache: cache, inputEmbedding: inputEmbedding)
     }
 }
