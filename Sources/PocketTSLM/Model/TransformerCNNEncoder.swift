@@ -49,7 +49,7 @@ class TransformerEncoderLayer: Module, UnaryLayer {
 
 /// 1:1 Swift port of Python MLX `TransformerCNNEncoder`.
 ///
-/// Takes raw time series `[B, L]` and produces patch embeddings `[B, N, outputDim]`
+/// Takes raw time series `[B, L]` and produces patch embeddings `[B, N, transformerInputDim]`
 /// where `N = L / patchSize`. Weight keys match the Python module exactly.
 class TransformerCNNEncoder: Module, UnaryLayer {
 
@@ -61,7 +61,6 @@ class TransformerCNNEncoder: Module, UnaryLayer {
     var layers: [TransformerEncoderLayer]
 
     init(
-        outputDim: Int = 128,
         transformerInputDim: Int = 128,
         numHeads: Int = 8,
         numLayers: Int = 6,

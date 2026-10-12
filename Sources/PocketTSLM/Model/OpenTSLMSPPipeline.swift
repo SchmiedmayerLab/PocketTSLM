@@ -15,19 +15,18 @@ final class OpenTSLMSPPipeline {
     let projector: MLPProjector
     let patchSize: Int
 
-    init(hiddenSize: Int = 2048, patchSize: Int = 4, maxPatches: Int = 2600) {
-        self.patchSize = patchSize
-        self.encoder = TransformerCNNEncoder(
-            transformerInputDim: 128,
+    /// The checkpoint's encoder and projector, with their weights.
+    init(checkpoint: TSLMCheckpoint) throws {
+        let configuration = checkpoint.configuration
+        patchSize = configuration.encoder.patchSize
+        encoder = TransformerCNNEncoder(
+            transformerInputDim: configuration.encoder.embedDim,
             patchSize: patchSize,
-            maxPatches: maxPatches
+            maxPatches: configuration.encoder.maxPatches
         )
-        self.projector = MLPProjector(inputDim: 128, outputDim: hiddenSize)
-    }
-
-    func loadWeights(encoderURL: URL, projectorURL: URL) throws {
-        try encoder.loadWeights(from: encoderURL)
-        try projector.loadWeights(from: projectorURL)
+        projector = MLPProjector(inputDim: configuration.encoder.embedDim, outputDim: configuration.baseModel.hiddenSize)
+        try encoder.loadWeights(from: checkpoint.encoderURL)
+        try projector.loadWeights(from: checkpoint.projectorURL)
     }
 
     func projectTimeSeries(_ seriesBatch: [[Float]]) -> [MLXArray] {

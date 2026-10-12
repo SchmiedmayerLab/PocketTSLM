@@ -23,13 +23,7 @@ public final class TSLM {
 
     /// Loads the checkpoint's encoder and projector; its LoRA adapter is applied to `base` on first use.
     public init(base: ModelContainer, checkpoint: TSLMCheckpoint) throws {
-        let configuration = checkpoint.configuration
-        pipeline = OpenTSLMSPPipeline(
-            hiddenSize: configuration.baseModel.hiddenSize,
-            patchSize: configuration.encoder.patchSize,
-            maxPatches: configuration.encoder.maxPatches
-        )
-        try pipeline.loadWeights(encoderURL: checkpoint.encoderURL, projectorURL: checkpoint.projectorURL)
+        pipeline = try OpenTSLMSPPipeline(checkpoint: checkpoint)
         self.base = base
         self.checkpoint = checkpoint
     }

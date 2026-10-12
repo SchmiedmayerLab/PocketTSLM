@@ -103,7 +103,7 @@ final class TransformerCNNEncoderTests: XCTestCase {
     func testNumericalParityWithPython() throws {
         try Device.withDefaultDevice(.cpu) {
             let encoder = TransformerCNNEncoder(
-                outputDim: 16, transformerInputDim: 16, numHeads: 2, numLayers: 2, patchSize: 4, ffDim: 32, maxPatches: 16
+                transformerInputDim: 16, numHeads: 2, numLayers: 2, patchSize: 4, ffDim: 32, maxPatches: 16
             )
             try encoder.loadWeights(from: fixturesURL.appendingPathComponent("tiny_encoder.safetensors"))
             let io = try loadArrays(url: fixturesURL.appendingPathComponent("tiny_io.safetensors"))

@@ -64,13 +64,7 @@ final class RealECGParityTests: XCTestCase {
     func testPipelineRealWeightsParity() async throws {
         let (checkpoint, reference) = try await integrationInputs()
         try Device.withDefaultDevice(.cpu) {
-            let configuration = checkpoint.configuration
-            let pipeline = OpenTSLMSPPipeline(
-                hiddenSize: configuration.baseModel.hiddenSize,
-                patchSize: configuration.encoder.patchSize,
-                maxPatches: configuration.encoder.maxPatches
-            )
-            try pipeline.loadWeights(encoderURL: checkpoint.encoderURL, projectorURL: checkpoint.projectorURL)
+            let pipeline = try OpenTSLMSPPipeline(checkpoint: checkpoint)
             let input = try XCTUnwrap(reference["input"])
             let leads = (0 ..< input.dim(0)).map { input[$0].asArray(Float.self) }
             let projected = stacked(pipeline.projectTimeSeries(leads), axis: 0)
