@@ -42,7 +42,7 @@ enum OpenTSLMLoRA {
         }
         if let current, current.shape != shape {
             throw TSLMError.invalidCheckpoint(
-                "its LoRA adapter (rank \(shape.rank)) differs from the one already on the base model (rank \(current.shape.rank))")
+                "its LoRA adapter (\(shape)) differs from the one already on the base model (\(current.shape))")
         }
         if current == nil {
             convertOpenTSLMLoRALayers(on: llama, shape: shape)
