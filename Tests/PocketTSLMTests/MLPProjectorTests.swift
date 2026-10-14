@@ -4,6 +4,10 @@ import MLXRandom
 @testable import PocketTSLM
 
 final class MLPProjectorTests: XCTestCase {
+    override func setUpWithError() throws {
+        try skipWithoutMetalGPU()
+    }
+
 
     func testOutputShape() {
         Device.withDefaultDevice(.cpu) {

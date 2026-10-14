@@ -4,6 +4,10 @@ import MLXRandom
 @testable import PocketTSLM
 
 final class TransformerCNNEncoderTests: XCTestCase {
+    override func setUpWithError() throws {
+        try skipWithoutMetalGPU()
+    }
+
 
     // Fixtures directory sits next to this file.
     private var fixturesURL: URL {

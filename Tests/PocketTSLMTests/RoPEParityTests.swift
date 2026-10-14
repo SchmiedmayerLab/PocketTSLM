@@ -13,6 +13,10 @@ import MLXFast
 /// at offset 3500, where the two differ by about 7.8. float32 RoPE stays within 7e-4 of exact there,
 /// though MLX versions differ from each other by up to 1e-3.
 final class RoPEParityTests: XCTestCase {
+    override func setUpWithError() throws {
+        try skipWithoutMetalGPU()
+    }
+
 
     private var fixturesURL: URL {
         URL(fileURLWithPath: #filePath).deletingLastPathComponent().appendingPathComponent("Fixtures")

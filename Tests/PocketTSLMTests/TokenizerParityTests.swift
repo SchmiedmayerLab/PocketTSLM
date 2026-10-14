@@ -27,7 +27,8 @@ final class TokenizerParityTests: XCTestCase {
             .configuration.baseModel else {
             return fixturesURL
         }
-        return FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(
+        // On iOS, `NSHomeDirectory()` is the app sandbox, which has no Hugging Face cache, so the test skips.
+        return URL(fileURLWithPath: NSHomeDirectory()).appendingPathComponent(
             ".cache/huggingface/hub/models--\(baseModel.id.replacingOccurrences(of: "/", with: "--"))/snapshots/\(baseModel.revision ?? "main")"
         )
     }

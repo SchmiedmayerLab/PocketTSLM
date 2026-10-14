@@ -10,6 +10,14 @@ import MLX
 import XCTest
 
 extension XCTestCase {
+    /// Skips a test that runs MLX on the iOS Simulator: MLX needs a Metal GPU, which the simulator
+    /// does not provide, so MLX crashes the test process there.
+    func skipWithoutMetalGPU() throws {
+        #if targetEnvironment(simulator)
+        throw XCTSkip("MLX needs a Metal GPU, which the iOS Simulator does not provide")
+        #endif
+    }
+
     /// Asserts that `output` matches a Python reference output element-wise within `maxTolerance`,
     /// and on average within `meanTolerance`.
     func assertParity(

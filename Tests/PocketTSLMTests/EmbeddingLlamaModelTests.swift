@@ -16,6 +16,10 @@ import XCTest
 /// Checks the patched Llama against the stock `MLXLLM.LlamaModel` of the same mlx-swift-examples
 /// revision, on a tiny model with default RoPE, where the RoPE patch does not apply.
 final class EmbeddingLlamaModelTests: XCTestCase {
+    override func setUpWithError() throws {
+        try skipWithoutMetalGPU()
+    }
+
     static let configuration = Data("""
         {
           "model_type": "llama",

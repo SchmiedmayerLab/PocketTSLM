@@ -13,6 +13,10 @@ import XCTest
 /// `xcodebuild test`. They read the checkpoint from `POCKETTSLM_ECG_CHECKPOINT`, else from the demo
 /// app's copy that `scripts/fetch_assets.sh` fills, else download it from Hugging Face.
 final class RealECGParityTests: XCTestCase {
+    override func setUpWithError() throws {
+        try skipWithoutMetalGPU()
+    }
+
 
     private var fixturesURL: URL {
         URL(fileURLWithPath: #filePath)
