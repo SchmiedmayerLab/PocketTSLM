@@ -1,0 +1,47 @@
+#
+# This source file is part of the PocketTSLM open-source project
+#
+# SPDX-FileCopyrightText: 2026 Schmiedmayer Lab and the project authors (see CONTRIBUTORS.md)
+#
+# SPDX-License-Identifier: MIT
+#
+
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  actions: read
+  contents: read
+  issues: write
+  pull-requests: write
+
+jobs:
+  swift-package-ci:
+    name: Swift Package CI
+    uses: SchmiedmayerLab/.github/.github/workflows/swift-package-ci.yml@v0.5
+    secrets: inherit
+
+  all-tests-pass:
+    name: All tests pass
+    if: always()
+    needs: swift-package-ci
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify CI results
+        run: |
+          echo "swift-package-ci = ${{ needs.swift-package-ci.result }}"
+          if [ "${{ needs.swift-package-ci.result }}" != "success" ]; then
+            echo "::error::Swift Package CI did not pass."
+            exit 1
+          fi
+          echo "All required checks passed."

@@ -1,0 +1,128 @@
+{
+  "contextWindow" : 8192,
+  "loraApplied" : true,
+  "rows" : [
+    {
+      "positionCompression" : 12,
+      "seriesLength" : 100,
+      "softPrompt" : {
+        "decodeTokensPerSecond" : 12.122200925468219,
+        "didOOM" : false,
+        "encoding" : "soft_prompt",
+        "generatedTokens" : 3,
+        "outputText" : "\"",
+        "peakMemoryBytes" : 4069824236,
+        "prefillSeconds" : 1.799473209,
+        "promptPositions" : 833,
+        "seriesLength" : 100,
+        "timeSeriesPositions" : 300,
+        "totalSeconds" : 1.96445975
+      },
+      "textSerialized" : {
+        "decodeTokensPerSecond" : 11.244698645012035,
+        "didOOM" : false,
+        "encoding" : "text_serialized",
+        "generatedTokens" : 80,
+        "outputText" : "The ECG recording of the 82-year-old male patient shows evidence of baseline drift, static noise, and electrode artifacts, which are common issues that can affect the quality of the signal. The presence of a pacemaker is noted, which can introduce additional electrical noise into the recording. Burst noise is characterized by sudden, irregular, and transient disruptions in the ECG trace, which can obscure the",
+        "peakMemoryBytes" : 4584036088,
+        "prefillSeconds" : 9.316157542,
+        "promptPositions" : 4133,
+        "seriesLength" : 100,
+        "timeSeriesPositions" : 3600,
+        "totalSeconds" : 16.341690417
+      }
+    },
+    {
+      "positionCompression" : 11.904761904761905,
+      "seriesLength" : 250,
+      "softPrompt" : {
+        "decodeTokensPerSecond" : 11.725543120121971,
+        "didOOM" : false,
+        "encoding" : "soft_prompt",
+        "generatedTokens" : 3,
+        "outputText" : "\"",
+        "peakMemoryBytes" : 4151453240,
+        "prefillSeconds" : 2.666453833,
+        "promptPositions" : 1289,
+        "seriesLength" : 250,
+        "timeSeriesPositions" : 756,
+        "totalSeconds" : 2.837021625
+      },
+      "textSerialized" : {
+        "decodeTokensPerSecond" : 0,
+        "didOOM" : true,
+        "encoding" : "text_serialized",
+        "generatedTokens" : 0,
+        "outputText" : "[skipped: 9533 positions exceed on-device budget 4300 — would risk an OOM termination]",
+        "peakMemoryBytes" : 0,
+        "prefillSeconds" : 0,
+        "promptPositions" : 9533,
+        "seriesLength" : 250,
+        "timeSeriesPositions" : 9000,
+        "totalSeconds" : 0
+      }
+    },
+    {
+      "positionCompression" : 12,
+      "seriesLength" : 500,
+      "softPrompt" : {
+        "decodeTokensPerSecond" : 12.008904554691705,
+        "didOOM" : false,
+        "encoding" : "soft_prompt",
+        "generatedTokens" : 3,
+        "outputText" : "\".",
+        "peakMemoryBytes" : 4271101672,
+        "prefillSeconds" : 4.521227208,
+        "promptPositions" : 2033,
+        "seriesLength" : 500,
+        "timeSeriesPositions" : 1500,
+        "totalSeconds" : 4.687770292
+      },
+      "textSerialized" : {
+        "decodeTokensPerSecond" : 0,
+        "didOOM" : true,
+        "encoding" : "text_serialized",
+        "generatedTokens" : 0,
+        "outputText" : "[skipped: 18533 positions exceed on-device budget 4300 — would risk an OOM termination]",
+        "peakMemoryBytes" : 0,
+        "prefillSeconds" : 0,
+        "promptPositions" : 18533,
+        "seriesLength" : 500,
+        "timeSeriesPositions" : 18000,
+        "totalSeconds" : 0
+      }
+    },
+    {
+      "positionCompression" : 12,
+      "seriesLength" : 1000,
+      "softPrompt" : {
+        "decodeTokensPerSecond" : 9.406546861978931,
+        "didOOM" : false,
+        "encoding" : "soft_prompt",
+        "generatedTokens" : 80,
+        "outputText" : "The ECG recording of this 82-year-old male patient shows several technical artifacts that can affect the interpretation of the tracing. The presence of baseline drift, static noise, and electrode artifacts are noted, which can obscure the clarity of the ECG signals. Burst noise, characterized by sudden, irregular, and high-amplitude spikes, is also evident in the recording. These artifacts can interfere with the",
+        "peakMemoryBytes" : 4463531768,
+        "prefillSeconds" : 8.731907583,
+        "promptPositions" : 3533,
+        "seriesLength" : 1000,
+        "timeSeriesPositions" : 3000,
+        "totalSeconds" : 17.130313625
+      },
+      "textSerialized" : {
+        "decodeTokensPerSecond" : 0,
+        "didOOM" : true,
+        "encoding" : "text_serialized",
+        "generatedTokens" : 0,
+        "outputText" : "[skipped: 36533 positions exceed on-device budget 4300 — would risk an OOM termination]",
+        "peakMemoryBytes" : 0,
+        "prefillSeconds" : 0,
+        "promptPositions" : 36533,
+        "seriesLength" : 1000,
+        "timeSeriesPositions" : 36000,
+        "totalSeconds" : 0
+      }
+    }
+  ],
+  "softPromptMaxSeriesLength" : 2553,
+  "textMaxSeriesLength" : 212
+}

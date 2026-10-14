@@ -1,0 +1,191 @@
+{
+  "accuracy" : 0.85,
+  "correct" : 17,
+  "loraApplied" : true,
+  "maxNewTokens" : 200,
+  "parsed" : 20,
+  "rows" : [
+    {
+      "correct" : true,
+      "groundTruth" : "wake",
+      "index" : 0,
+      "label" : "W",
+      "output" : "The time-series data presented exhibits characteristics that are indicative of a particular sleep stage. The signal shows frequent fluctuations with relatively high frequency and low amplitude. These patterns suggest a level of brain activity that is more consistent with a state of alertness or light sleep. The presence of rapid and varied changes in the signal amplitude and frequency typically aligns with a more active brain state, as opposed to the slower, higher amplitude waves that are often associated with deeper sleep stages. This analysis leads to the conclusion that the observed EEG data corresponds to a state of wakefulness. Answer: Wake",
+      "predicted" : "wake",
+      "seconds" : 9.1
+    },
+    {
+      "correct" : true,
+      "groundTruth" : "wake",
+      "index" : 1,
+      "label" : "W",
+      "output" : "The time-series data presented exhibits characteristics that are indicative of a particular sleep stage. The signal shows frequent fluctuations with relatively high frequency and low amplitude. Such patterns typically suggest a level of neural activity that is more consistent with an alert or semi-alert state. The presence of rapid and varied changes in the signal amplitude and frequency is less likely to be associated with deeper sleep stages, where the brain activity tends to be slower and more synchronized. Instead, these features are more aligned with a state where the brain is actively processing information and responding to external stimuli. Answer: Wake",
+      "predicted" : "wake",
+      "seconds" : 6
+    },
+    {
+      "correct" : true,
+      "groundTruth" : "rem sleep",
+      "index" : 2,
+      "label" : "REM",
+      "output" : "The observed EEG signal presents with characteristics indicative of a particular sleep stage. The pattern is relatively irregular with noticeable variability in amplitude, which is less structured compared to the more rhythmic and distinct wave patterns typically associated with other stages. This variability, along with the absence of large, consistent waveforms or spindles, suggests a state where the brain activity is more desynchronized. This desynchronization is often linked to a stage where the brain is more active and engaged in processes such as dreaming. The overall appearance of the signal aligns with the characteristics of a stage where the brain exhibits a high level of activity and variability. Answer: REM sleep.",
+      "predicted" : "rem sleep",
+      "seconds" : 6.63
+    },
+    {
+      "correct" : false,
+      "groundTruth" : "non-rem stage 2",
+      "index" : 3,
+      "label" : "N2",
+      "output" : "The time series data presented shows a pattern characteristic of slow-wave activity, which is typical of deep sleep stages. The signal exhibits high-amplitude, low-frequency oscillations that are consistent with the delta waves observed during deep sleep. These waves are less frequent and more pronounced compared to the mixed frequency and lower amplitude signals often seen during wakefulness. The presence of these distinct oscillations suggests a state of reduced neural activity, which aligns with the characteristics of deep sleep where restorative processes occur. Given these observations, the data corresponds to a sleep stage associated with significant brain activity and minimal external interaction. Answer: Non-REM stage 3.",
+      "predicted" : "non-rem stage 3",
+      "seconds" : 6.55
+    },
+    {
+      "correct" : true,
+      "groundTruth" : "wake",
+      "index" : 4,
+      "label" : "W",
+      "output" : "The time-series data presented exhibits characteristics that are indicative of a particular sleep stage. The signal shows a high degree of variability with frequent fluctuations, which suggests a more active brain state. This pattern is typically associated with a state where the brain is processing information or reacting to stimuli, as opposed to a more stable or synchronized pattern that might be observed in deeper sleep stages. The presence of rapid changes and the absence of large, slow waves further support the notion of an alert and responsive state. Answer: Wake",
+      "predicted" : "wake",
+      "seconds" : 5.11
+    },
+    {
+      "correct" : true,
+      "groundTruth" : "wake",
+      "index" : 5,
+      "label" : "W",
+      "output" : "The time-series data presented exhibits characteristics that are indicative of a particular sleep stage. The signal shows a high degree of variability with frequent fluctuations, which suggests a more active brain state. This pattern is typically associated with a state where the brain is processing information or reacting to stimuli, as opposed to a more stable or synchronized pattern that might be observed in deeper sleep stages. The rapid changes and lack of consistent rhythmic patterns imply a level of alertness and responsiveness. Answer: Wake",
+      "predicted" : "wake",
+      "seconds" : 4.86
+    },
+    {
+      "correct" : true,
+      "groundTruth" : "rem sleep",
+      "index" : 6,
+      "label" : "REM",
+      "output" : "The observed EEG signal presents with characteristics indicative of a particular sleep stage. The pattern displays relatively low amplitude and higher frequency oscillations, which are typical features of a certain sleep stage where brain activity is more active and desynchronized. This stage is often associated with vivid dreaming and rapid eye movements, reflecting a more awake-like brain state despite being asleep. The variability and rapid shifts in the EEG signal suggest a dynamic neural environment, which aligns with the known properties of this sleep phase. Answer: REM sleep.",
+      "predicted" : "rem sleep",
+      "seconds" : 5.07
+    },
+    {
+      "correct" : true,
+      "groundTruth" : "rem sleep",
+      "index" : 7,
+      "label" : "REM",
+      "output" : "The observed EEG signal presents with characteristics indicative of a particular sleep stage. The pattern shows relatively low amplitude and higher frequency oscillations, which are typical features of a certain sleep stage where brain activity is more active and desynchronized. This stage is often associated with vivid dreaming and rapid eye movements, reflecting a more awake-like brain state despite being asleep. The variability and rapid shifts in the EEG signal suggest a dynamic neural environment, which aligns with the known properties of this sleep phase. Answer: REM sleep.",
+      "predicted" : "rem sleep",
+      "seconds" : 5.22
+    },
+    {
+      "correct" : true,
+      "groundTruth" : "non-rem stage 2",
+      "index" : 8,
+      "label" : "N2",
+      "output" : "The time series data presented shows a pattern characteristic of certain sleep stages, distinguished by specific EEG features. The signal displays a relatively consistent amplitude with some fluctuations, but it lacks the high-frequency, low-amplitude characteristics typically associated with wakefulness. Instead, the presence of distinct fluctuations and variations in amplitude suggests the occurrence of sleep spindles, which are indicative of a particular sleep stage. These spindles are brief bursts of activity that are generally observed during sleep and are not typically present when an individual is awake. The overall pattern and characteristics of the signal, including the presence of these features, align with the expected patterns of a specific sleep stage rather than wakefulness. Answer: Non-REM stage 2.",
+      "predicted" : "non-rem stage 2",
+      "seconds" : 7.21
+    },
+    {
+      "correct" : true,
+      "groundTruth" : "rem sleep",
+      "index" : 9,
+      "label" : "REM",
+      "output" : "The observed EEG signal presents with characteristics indicative of a particular sleep stage. The pattern is relatively low in amplitude and exhibits a higher frequency, with more rapid fluctuations over the 30-second interval. This suggests a level of brain activity that is more active and less synchronized, which is typically associated with a stage of sleep where the brain is more active. Such a signal pattern is consistent with the presence of fast, low-amplitude waves that are often observed during a sleep stage characterized by vivid dreaming and increased brain activity. Answer: REM sleep.",
+      "predicted" : "rem sleep",
+      "seconds" : 5.6
+    },
+    {
+      "correct" : true,
+      "groundTruth" : "wake",
+      "index" : 10,
+      "label" : "W",
+      "output" : "The time-series data presented exhibits characteristics that are indicative of a particular sleep stage. The signal shows a high degree of variability with frequent fluctuations, which suggests a more active brain state. This pattern is typically associated with a state where the brain is processing information or reacting to stimuli, as opposed to a more stable or synchronized pattern that might be observed in deeper sleep stages. The presence of rapid changes and the absence of large, slow waves further support this interpretation. Answer: Wake",
+      "predicted" : "wake",
+      "seconds" : 4.78
+    },
+    {
+      "correct" : true,
+      "groundTruth" : "non-rem stage 2",
+      "index" : 11,
+      "label" : "N2",
+      "output" : "The time series data presented shows a pattern characteristic of certain sleep stages, distinguished by specific EEG features. The signal displays a relatively consistent amplitude and frequency, with occasional larger peaks that suggest the presence of sleep spindles, which are indicative of a particular sleep stage. These spindles are bursts of oscillatory brain activity visible on an EEG that occur most prominently in the sleep stage being analyzed. The overall signal lacks the high-frequency, low-amplitude activity typically associated with wakefulness, which is characterized by more irregular and varied patterns. The presence of these features, particularly the sleep spindles, aligns with the characteristics of a sleep stage that is deeper than wakefulness but not as deep as other stages. Answer: Non-REM stage 2.",
+      "predicted" : "non-rem stage 2",
+      "seconds" : 7.35
+    },
+    {
+      "correct" : true,
+      "groundTruth" : "wake",
+      "index" : 12,
+      "label" : "W",
+      "output" : "The time-series data presented exhibits characteristics that are indicative of a particular sleep stage. The signal shows a high degree of variability with frequent fluctuations, which suggests a more active brain state. This pattern is typically associated with a state where the brain is processing information or reacting to stimuli, as opposed to a more stable or synchronized pattern that might be observed in deeper sleep stages. The presence of rapid changes and the absence of large, slow waves further support this interpretation. Answer: Wake",
+      "predicted" : "wake",
+      "seconds" : 4.79
+    },
+    {
+      "correct" : true,
+      "groundTruth" : "non-rem stage 2",
+      "index" : 13,
+      "label" : "N2",
+      "output" : "The time series data presented shows a pattern characteristic of certain sleep stages, distinguished by specific EEG features. The signal displays a relatively consistent amplitude with some fluctuations, but it lacks the high-frequency, low-amplitude characteristics typically associated with wakefulness. Instead, the presence of distinct fluctuations and variations in amplitude suggests the occurrence of sleep spindles, which are indicative of a particular sleep stage. These spindles are brief bursts of activity that are generally observed during sleep and are not typically present when an individual is awake. The overall pattern and characteristics of the signal, including the presence of these features, align with the expected patterns of a specific sleep stage rather than wakefulness. Answer: Non-REM stage 2.",
+      "predicted" : "non-rem stage 2",
+      "seconds" : 6.88
+    },
+    {
+      "correct" : true,
+      "groundTruth" : "wake",
+      "index" : 14,
+      "label" : "W",
+      "output" : "The time-series data presented exhibits characteristics that are indicative of a particular sleep stage. The signal shows frequent fluctuations with relatively high frequency and low amplitude. These patterns suggest a level of brain activity that is more consistent with a state of alertness or light sleep. The presence of rapid and varied changes in the signal amplitude and frequency typically aligns with a more active brain state, as opposed to the slower, higher amplitude waves that are often associated with deeper sleep stages. This analysis leads to the conclusion that the observed EEG data corresponds to a state of wakefulness. Answer: Wake",
+      "predicted" : "wake",
+      "seconds" : 5.66
+    },
+    {
+      "correct" : true,
+      "groundTruth" : "non-rem stage 2",
+      "index" : 15,
+      "label" : "N2",
+      "output" : "The time series data presented shows a pattern characteristic of certain sleep stages, distinguished by specific EEG features. The signal displays a relatively consistent amplitude with some fluctuations, but it lacks the high-frequency, low-amplitude characteristics typically associated with wakefulness. Instead, the presence of distinct fluctuations and variations in amplitude suggests the occurrence of sleep spindles, which are indicative of a particular sleep stage. These spindles are brief bursts of activity that are generally observed during sleep and are not typically present when an individual is awake. The overall pattern and characteristics of the signal, including the presence of these features, align with the expected patterns of a specific sleep stage rather than wakefulness. Answer: Non-REM stage 2.",
+      "predicted" : "non-rem stage 2",
+      "seconds" : 6.88
+    },
+    {
+      "correct" : false,
+      "groundTruth" : "non-rem stage 1",
+      "index" : 16,
+      "label" : "N1",
+      "output" : "The time series data presented shows a pattern characteristic of certain sleep stages, distinguished by specific EEG features. The signal displays a relatively consistent amplitude and frequency, with occasional larger peaks that suggest the presence of sleep spindles, which are indicative of a particular sleep stage. These spindles are bursts of oscillatory brain activity visible on an EEG that occur most prominently in the sleep stage being analyzed. The overall signal lacks the high-frequency, low-amplitude activity typically associated with wakefulness, which is characterized by more irregular and varied patterns. The presence of these features, particularly the sleep spindles, aligns with the characteristics of a sleep stage that is deeper than wakefulness but not as deep as other stages. Answer: Non-REM stage 2.",
+      "predicted" : "non-rem stage 2",
+      "seconds" : 7.39
+    },
+    {
+      "correct" : false,
+      "groundTruth" : "rem sleep",
+      "index" : 17,
+      "label" : "REM",
+      "output" : "The time-series data presented exhibits characteristics that are indicative of a particular sleep stage. The signal shows relatively high-frequency fluctuations and a notable amount of variability, which is consistent with the active neural activity typically observed during wakefulness. The presence of such dynamic changes and the absence of large, slow waves suggest a state of alertness rather than deep sleep. This pattern aligns with the known features of wakefulness, where the brain exhibits a more irregular and varied EEG pattern compared to the slow, high-amplitude waves seen in deep sleep stages. Answer: Wake",
+      "predicted" : "wake",
+      "seconds" : 5.55
+    },
+    {
+      "correct" : true,
+      "groundTruth" : "wake",
+      "index" : 18,
+      "label" : "W",
+      "output" : "The time-series data presented exhibits characteristics that are indicative of a particular sleep stage. The signal shows frequent fluctuations with relatively high variability and a wide range of amplitudes, suggesting a level of neural activity that is more consistent with a state of alertness. The presence of rapid, irregular changes and the absence of large, slow waves are key features that align with a higher level of cortical activity. These patterns are typically associated with a state where the brain is actively processing information and responding to external stimuli. The overall dynamics of the signal, with its frequent peaks and troughs, are not characteristic of the deep, slow-wave activity seen in more restful sleep stages. Answer: Wake",
+      "predicted" : "wake",
+      "seconds" : 6.7
+    },
+    {
+      "correct" : true,
+      "groundTruth" : "wake",
+      "index" : 19,
+      "label" : "W",
+      "output" : "The time-series data presented exhibits characteristics that are indicative of a particular sleep stage. The signal shows relatively high-frequency fluctuations with a notable amount of variability and amplitude changes throughout the 30-second interval. These fluctuations suggest a level of neural activity that is typically associated with a more alert and active state. The presence of these rapid changes and the apparent lack of large, slow oscillations or consistent patterns that would indicate deep sleep suggest that the signal corresponds to a state where the brain is more responsive to external stimuli and environmental changes. This pattern aligns with the characteristics of a wakeful state, where the brain exhibits a higher level of activity and responsiveness. Answer: Wake",
+      "predicted" : "wake",
+      "seconds" : 6.54
+    }
+  ],
+  "sampleCount" : 20,
+  "seriesLength" : 1500
+}

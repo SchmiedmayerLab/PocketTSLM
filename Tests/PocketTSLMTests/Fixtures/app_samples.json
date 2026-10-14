@@ -1,0 +1,230 @@
+[
+  {
+    "answer" : "The signal shows fast, low-amplitude activity. Answer: Wake",
+    "label" : "W",
+    "name" : "sleep-0",
+    "postPrompt" : "Possible sleep stages are:\n        Wake, Non-REM stage 1, Non-REM stage 2, Non-REM stage 3, REM sleep, Movement\n\n        - Please now write your rationale. Make sure that your last word is the answer. You MUST end your response with \"Answer:",
+    "prePrompt" : "You are given a 30-second EEG time series segment. Your task is to classify the sleep stage based on analysis of the data.\n\n            Instructions:\n            - Analyze the data objectively without presuming a particular label.\n            - Reason carefully and methodically about what the signal patterns suggest regarding sleep stage.\n            - Write your reasoning as a single, coherent paragraph. Do not use bullet points, lists, or section headers.\n            - Only reveal the correct class at the very end.\n            - Never state that you are uncertain or unable to classify the data. You must always provide a rationale and a final answer.",
+    "seriesLengths" : [
+      1500
+    ],
+    "seriesSHA256" : [
+      "c823603c7b955e6d19b2a9414d36f8724e322845262be9fe9a8990598b222546"
+    ],
+    "timeSeriesText" : [
+      "The following is the EEG time series, it has mean -0.0000 and std 0.0000:"
+    ]
+  },
+  {
+    "answer" : "Spindles and K-complexes appear throughout. Answer: Non-REM stage 2",
+    "label" : "N2",
+    "name" : "sleep-1",
+    "postPrompt" : "Possible sleep stages are:\n        Wake, Non-REM stage 1, Non-REM stage 2, Non-REM stage 3, REM sleep, Movement\n\n        - Please now write your rationale. Make sure that your last word is the answer. You MUST end your response with \"Answer:",
+    "prePrompt" : "You are given a 30-second EEG time series segment. Your task is to classify the sleep stage based on analysis of the data.\n\n            Instructions:\n            - Analyze the data objectively without presuming a particular label.\n            - Reason carefully and methodically about what the signal patterns suggest regarding sleep stage.\n            - Write your reasoning as a single, coherent paragraph. Do not use bullet points, lists, or section headers.\n            - Only reveal the correct class at the very end.\n            - Never state that you are uncertain or unable to classify the data. You must always provide a rationale and a final answer.",
+    "seriesLengths" : [
+      1500
+    ],
+    "seriesSHA256" : [
+      "9ccfb578f8dfc3499a8f073ba12e16cd662a7d7486b5b77d256a2adb1d5e276e"
+    ],
+    "timeSeriesText" : [
+      "The following is the EEG time series, it has mean 0.0000 and std 0.0000:"
+    ]
+  },
+  {
+    "answer" : "Regular rhythm with upright P waves. Answer: yes",
+    "label" : "yes",
+    "name" : "ecg-qa-0",
+    "postPrompt" : "Based on your analysis of the ECG data, select your answer from the following options:\nyes, no, not sure\n\n- Make sure that your last word is the answer. You MUST end your response with \"Answer: \"",
+    "prePrompt" : "You are an expert cardiologist analyzing an ECG (electrocardiogram). \n\nClinical Context: A 63-year-old patient with palpitations.\n\nYour task is to examine the ECG signal and answer the following medical question:\n\nQuestion: Does this ECG show sinus rhythm?\n\nInstructions:\n- Begin by analyzing the time series without assuming a specific answer.\n- Think step-by-step about what the observed patterns suggest regarding the cardiac condition.\n- Write your rationale as a single, natural paragraph — do not use bullet points, numbered steps, or section headings.\n- Do **not** mention any final answer until the very end.\n- Consider the ECG morphology, intervals, and any abnormalities that relate to the question.",
+    "seriesLengths" : [
+      1000,
+      1000,
+      1000,
+      1000,
+      1000,
+      1000,
+      1000,
+      1000,
+      1000,
+      1000,
+      1000,
+      1000
+    ],
+    "seriesSHA256" : [
+      "6d99eb7e7eff802d6de4e5677a33a74458568c2ce1ff51219a1613b3810efd77",
+      "bb3f34a482131e7aad5a6c5be31b9ce535768a110a4da04af99fe66c2515b010",
+      "5d0c89049754ff6b2b7de345513201e0b444b22aec607d6dc499852abe66d5dd",
+      "2ab6549189b7171ff679969178161ab43c3f1a10da2369a5738a5ad1034ca188",
+      "81a17659ec9031582f273bf4bea4096fe1f629907b4177038575e091e2dacce3",
+      "56f03eade51f20cf2a23be4909573c559597169005a2cfdc06ef3c59a9d348ec",
+      "205bed5caf199fc88e8be82178ee2dc093d6d5dc29d70cd8411a1b8ee22e978c",
+      "142daa75af40427485d7b08b8cc15f796787369cce6a905780d347d71ec1ea64",
+      "4f1b39fe4b9769673e35c36369c98733a705bca42518c237db09012555470af9",
+      "e2d5feef71a476bb94e38c1c42e1d5f58f94eefd1acdda46ca98ac78b2e04257",
+      "4b03e24eb95eac426da95adb82f39713fae3c2e10e2cf3e54e1d992b9b8bdca1",
+      "40639f24217c4bc0c831dd115caf35c7d114c0836c7f8d67c44136881478cd1b"
+    ],
+    "timeSeriesText" : [
+      "This is ECG Lead I, it has mean -0.0500 and std 0.1000:",
+      "This is ECG Lead II, it has mean -0.0377 and std 0.1100:",
+      "This is ECG Lead III, it has mean -0.0254 and std 0.1200:",
+      "This is ECG Lead aVR, it has mean -0.0131 and std 0.1300:",
+      "This is ECG Lead aVL, it has mean -0.0008 and std 0.1400:",
+      "This is ECG Lead aVF, it has mean 0.0115 and std 0.1500:",
+      "This is ECG Lead V1, it has mean 0.0238 and std 0.1600:",
+      "This is ECG Lead V2, it has mean 0.0361 and std 0.1700:",
+      "This is ECG Lead V3, it has mean 0.0484 and std 0.1800:",
+      "This is ECG Lead V4, it has mean 0.0607 and std 0.1900:",
+      "This is ECG Lead V5, it has mean 0.0730 and std 0.2000:",
+      "This is ECG Lead V6, it has mean 0.0853 and std 0.2100:"
+    ]
+  },
+  {
+    "answer" : "Normal P waves precede each QRS complex. Answer: sinus rhythm",
+    "label" : "sinus rhythm",
+    "name" : "ecg-qa-1",
+    "postPrompt" : "Based on your analysis of the ECG data, provide your answer.\nMake sure that your last word is the answer. You MUST end your response with \"Answer: \"",
+    "prePrompt" : "You are an expert cardiologist analyzing an ECG (electrocardiogram). \n\nClinical Context: 12-lead ECG recording.\n\nYour task is to examine the ECG signal and answer the following medical question:\n\nQuestion: What is the heart rhythm?\n\nInstructions:\n- Begin by analyzing the time series without assuming a specific answer.\n- Think step-by-step about what the observed patterns suggest regarding the cardiac condition.\n- Write your rationale as a single, natural paragraph — do not use bullet points, numbered steps, or section headings.\n- Do **not** mention any final answer until the very end.\n- Consider the ECG morphology, intervals, and any abnormalities that relate to the question.",
+    "seriesLengths" : [
+      1000,
+      1000,
+      1000,
+      1000,
+      1000,
+      1000,
+      1000,
+      1000,
+      1000,
+      1000,
+      1000,
+      1000
+    ],
+    "seriesSHA256" : [
+      "bfc74f96264392d29186b3079b854456701d1505b54bb83ef2ea065d936a6719",
+      "d066ac99a16dbf4ddf095daa1586b0f9fb5df23987d62bc8d84a5144f9dbfa49",
+      "8e3e8b33d19ca10c00a52fb1df17e050482ed630e9c2b70ca75eff1cf13d63bf",
+      "f15141a2dcc610c24d4994e622c554b2840f140628d2a2a10ee1f675e95168d4",
+      "8685c87aa9c182aab3f86fa22293873093e67fa920a47e04b92c054e6af212a9",
+      "3f487970a1c5008780d913a8d8a518cfbe24581298925c2f782eeaf2b89d66a8",
+      "61e49d9c613a563744d0f71ae03b0622d93056932d76a7e870ffad16dd7be401",
+      "71eae2cfc1ae2b77164e546fe7b49540cb588355ea3caa5157ed2cc1ac778d84",
+      "38921e8f973b7d818e8d8a1d49c263654ea4dbae8693d5c5ce7e800ec02b16a9",
+      "65f6b44ce0e4fbada103152a877213639c319e40e77fe7c0e70908d80fb43771",
+      "63eda409bf11b3c4c3827039962ce615b7c07edb4704003b761a096a4011a907",
+      "fc21794553b897995fa2919a707943f013ad9418ab91178109c95af171217d7e"
+    ],
+    "timeSeriesText" : [
+      "This is ECG Lead I, it has mean -0.0500 and std 0.1000:",
+      "This is ECG Lead II, it has mean -0.0377 and std 0.1100:",
+      "This is ECG Lead III, it has mean -0.0254 and std 0.1200:",
+      "This is ECG Lead aVR, it has mean -0.0131 and std 0.1300:",
+      "This is ECG Lead aVL, it has mean -0.0008 and std 0.1400:",
+      "This is ECG Lead aVF, it has mean 0.0115 and std 0.1500:",
+      "This is ECG Lead V1, it has mean 0.0238 and std 0.1600:",
+      "This is ECG Lead V2, it has mean 0.0361 and std 0.1700:",
+      "This is ECG Lead V3, it has mean 0.0484 and std 0.1800:",
+      "This is ECG Lead V4, it has mean 0.0607 and std 0.1900:",
+      "This is ECG Lead V5, it has mean 0.0730 and std 0.2000:",
+      "This is ECG Lead V6, it has mean 0.0853 and std 0.2100:"
+    ]
+  },
+  {
+    "answer" : "classification=sinus rhythm, symptoms_status=none, average_heart_rate=72.0",
+    "label" : "sinus rhythm",
+    "name" : "watch-0",
+    "postPrompt" : "Based on your analysis of the ECG data, select your answer from the following options:\nyes, no\n\n- Make sure that your last word is the answer. You MUST end your response with \"Answer: \"",
+    "prePrompt" : "You are an expert cardiologist analyzing an ECG (electrocardiogram). \n\nClinical Context: Single-lead ambulatory ECG recording (Lead I equivalent, replicated across the standard 12 leads).\n\nYour task is to examine the ECG signal and answer the following medical question:\n\nQuestion: Is the cardiac rhythm shown in this ECG consistent with atrial fibrillation?\n\nInstructions:\n- Begin by analyzing the time series without assuming a specific answer.\n- Think step-by-step about what the observed patterns suggest regarding the cardiac condition.\n- Write your rationale as a single, natural paragraph — do not use bullet points, numbered steps, or section headings.\n- Do **not** mention any final answer until the very end.\n- Consider the ECG morphology, intervals, and any abnormalities that relate to the question.",
+    "seriesLengths" : [
+      1000,
+      1000,
+      1000,
+      1000,
+      1000,
+      1000,
+      1000,
+      1000,
+      1000,
+      1000,
+      1000,
+      1000
+    ],
+    "seriesSHA256" : [
+      "5c40387215369474cfc548e9d8dd56612b8190fcdbd8421ba32a4a79b5d865b9",
+      "5c40387215369474cfc548e9d8dd56612b8190fcdbd8421ba32a4a79b5d865b9",
+      "5c40387215369474cfc548e9d8dd56612b8190fcdbd8421ba32a4a79b5d865b9",
+      "5c40387215369474cfc548e9d8dd56612b8190fcdbd8421ba32a4a79b5d865b9",
+      "5c40387215369474cfc548e9d8dd56612b8190fcdbd8421ba32a4a79b5d865b9",
+      "5c40387215369474cfc548e9d8dd56612b8190fcdbd8421ba32a4a79b5d865b9",
+      "5c40387215369474cfc548e9d8dd56612b8190fcdbd8421ba32a4a79b5d865b9",
+      "5c40387215369474cfc548e9d8dd56612b8190fcdbd8421ba32a4a79b5d865b9",
+      "5c40387215369474cfc548e9d8dd56612b8190fcdbd8421ba32a4a79b5d865b9",
+      "5c40387215369474cfc548e9d8dd56612b8190fcdbd8421ba32a4a79b5d865b9",
+      "5c40387215369474cfc548e9d8dd56612b8190fcdbd8421ba32a4a79b5d865b9",
+      "5c40387215369474cfc548e9d8dd56612b8190fcdbd8421ba32a4a79b5d865b9"
+    ],
+    "timeSeriesText" : [
+      "This is ECG Lead I, it has mean 0.0001 and std 0.0005:",
+      "This is ECG Lead II, it has mean 0.0001 and std 0.0005:",
+      "This is ECG Lead III, it has mean 0.0001 and std 0.0005:",
+      "This is ECG Lead aVR, it has mean 0.0001 and std 0.0005:",
+      "This is ECG Lead aVL, it has mean 0.0001 and std 0.0005:",
+      "This is ECG Lead aVF, it has mean 0.0001 and std 0.0005:",
+      "This is ECG Lead V1, it has mean 0.0001 and std 0.0005:",
+      "This is ECG Lead V2, it has mean 0.0001 and std 0.0005:",
+      "This is ECG Lead V3, it has mean 0.0001 and std 0.0005:",
+      "This is ECG Lead V4, it has mean 0.0001 and std 0.0005:",
+      "This is ECG Lead V5, it has mean 0.0001 and std 0.0005:",
+      "This is ECG Lead V6, it has mean 0.0001 and std 0.0005:"
+    ]
+  },
+  {
+    "answer" : "classification=sinus rhythm, symptoms_status=none, average_heart_rate=72.0",
+    "label" : "sinus rhythm",
+    "name" : "watch-1",
+    "postPrompt" : "Based on your analysis of the ECG data, select your answer from the following options:\nyes, no\n\n- Make sure that your last word is the answer. You MUST end your response with \"Answer: \"",
+    "prePrompt" : "You are an expert cardiologist analyzing an ECG (electrocardiogram). \n\nClinical Context: Single-lead ambulatory ECG recording (Lead I equivalent, replicated across the standard 12 leads).\n\nYour task is to examine the ECG signal and answer the following medical question:\n\nQuestion: Is the cardiac rhythm shown in this ECG consistent with atrial fibrillation?\n\nInstructions:\n- Begin by analyzing the time series without assuming a specific answer.\n- Think step-by-step about what the observed patterns suggest regarding the cardiac condition.\n- Write your rationale as a single, natural paragraph — do not use bullet points, numbered steps, or section headings.\n- Do **not** mention any final answer until the very end.\n- Consider the ECG morphology, intervals, and any abnormalities that relate to the question.",
+    "seriesLengths" : [
+      1000,
+      1000,
+      1000,
+      1000,
+      1000,
+      1000,
+      1000,
+      1000,
+      1000,
+      1000,
+      1000,
+      1000
+    ],
+    "seriesSHA256" : [
+      "0e5f9644bb27a5f9fdf4b07d99ad1a1c9eb1e7982263a90ba417f7e3343b95a1",
+      "0e5f9644bb27a5f9fdf4b07d99ad1a1c9eb1e7982263a90ba417f7e3343b95a1",
+      "0e5f9644bb27a5f9fdf4b07d99ad1a1c9eb1e7982263a90ba417f7e3343b95a1",
+      "0e5f9644bb27a5f9fdf4b07d99ad1a1c9eb1e7982263a90ba417f7e3343b95a1",
+      "0e5f9644bb27a5f9fdf4b07d99ad1a1c9eb1e7982263a90ba417f7e3343b95a1",
+      "0e5f9644bb27a5f9fdf4b07d99ad1a1c9eb1e7982263a90ba417f7e3343b95a1",
+      "0e5f9644bb27a5f9fdf4b07d99ad1a1c9eb1e7982263a90ba417f7e3343b95a1",
+      "0e5f9644bb27a5f9fdf4b07d99ad1a1c9eb1e7982263a90ba417f7e3343b95a1",
+      "0e5f9644bb27a5f9fdf4b07d99ad1a1c9eb1e7982263a90ba417f7e3343b95a1",
+      "0e5f9644bb27a5f9fdf4b07d99ad1a1c9eb1e7982263a90ba417f7e3343b95a1",
+      "0e5f9644bb27a5f9fdf4b07d99ad1a1c9eb1e7982263a90ba417f7e3343b95a1",
+      "0e5f9644bb27a5f9fdf4b07d99ad1a1c9eb1e7982263a90ba417f7e3343b95a1"
+    ],
+    "timeSeriesText" : [
+      "This is ECG Lead I, it has mean 0.0000 and std 0.0003:",
+      "This is ECG Lead II, it has mean 0.0000 and std 0.0003:",
+      "This is ECG Lead III, it has mean 0.0000 and std 0.0003:",
+      "This is ECG Lead aVR, it has mean 0.0000 and std 0.0003:",
+      "This is ECG Lead aVL, it has mean 0.0000 and std 0.0003:",
+      "This is ECG Lead aVF, it has mean 0.0000 and std 0.0003:",
+      "This is ECG Lead V1, it has mean 0.0000 and std 0.0003:",
+      "This is ECG Lead V2, it has mean 0.0000 and std 0.0003:",
+      "This is ECG Lead V3, it has mean 0.0000 and std 0.0003:",
+      "This is ECG Lead V4, it has mean 0.0000 and std 0.0003:",
+      "This is ECG Lead V5, it has mean 0.0000 and std 0.0003:",
+      "This is ECG Lead V6, it has mean 0.0000 and std 0.0003:"
+    ]
+  }
+]

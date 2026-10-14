@@ -1,16 +1,54 @@
 #
-# This source file is part of the Template Repository open-source project
+# This source file is part of the PocketTSLM open-source project
 #
-# SPDX-FileCopyrightText: 2026 Schmiedmayer Lab and the project authors (see CONTRIBUTORS.md)
+# SPDX-FileCopyrightText: 2023 Schmiedmayer Lab and the project authors (see CONTRIBUTORS.md)
 #
 # SPDX-License-Identifier: MIT
 #
 
-# macOS
+# Swift Package Manager; keep the shared PocketTSLM scheme, which CI tests with
+.swiftpm/*
+!.swiftpm/xcode
+.swiftpm/xcode/*
+!.swiftpm/xcode/xcshareddata
+.swiftpm/xcode/xcshareddata/*
+!.swiftpm/xcode/xcshareddata/xcschemes
+.swiftpm/xcode/xcshareddata/xcschemes/*
+!.swiftpm/xcode/xcshareddata/xcschemes/PocketTSLM.xcscheme
+.derivedData
+.build
+
+# IDE related folders
+.idea
+
+# Xcode
+xcuserdata/
+*.ipa
+*.dSYM
+*.dSYM.zip
+
+# Other files
 .DS_Store
+.env
 
-# Editors
-.idea/
-*.swp
+# Tests
+report.junit
+report.html
+*.xcresult
 
-# Add the ignores your language and tooling need below.
+# Local ML artifacts
+/checkpoints/
+/data/
+
+# Model files and evaluation data, restored by scripts/fetch_assets.sh
+Tests/UITests/TestApp/Supporting Files/OpenTSLM/
+Tests/UITests/Checkpoints/*
+!Tests/UITests/Checkpoints/README.md
+Tests/UITests/EvalData/*
+!Tests/UITests/EvalData/README.md
+
+# Converted checkpoints prepared for upload to Hugging Face
+upload/
+
+# Python bytecode
+__pycache__/

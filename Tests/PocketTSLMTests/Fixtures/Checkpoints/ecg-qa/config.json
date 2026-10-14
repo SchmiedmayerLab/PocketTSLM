@@ -1,0 +1,67 @@
+{
+  "format": "pockettslm-checkpoint/1",
+  "task": "ecg-qa",
+  "baseModel": {
+    "id": "meta-llama/Llama-3.2-1B",
+    "revision": "4e20de362430cd3b72f300e6b0f18e50e7166e08",
+    "weightsSHA256": "68a2e4be76fa709455a60272fba8e512c02d81c46e6c671cc9449e374fd6809a",
+    "hiddenSize": 2048
+  },
+  "encoder": {
+    "patchSize": 4,
+    "embedDim": 128,
+    "maxPatches": 1024
+  },
+  "lora": {
+    "rank": 16,
+    "alpha": 32,
+    "keys": [
+      "q_proj",
+      "k_proj",
+      "v_proj",
+      "o_proj",
+      "gate_proj",
+      "up_proj",
+      "down_proj"
+    ]
+  },
+  "series": {
+    "normalization": "z-score",
+    "minStd": 1e-06,
+    "maxLength": 1000,
+    "samplingRate": 100,
+    "names": [
+      "I",
+      "II",
+      "III",
+      "aVR",
+      "aVL",
+      "aVF",
+      "V1",
+      "V2",
+      "V3",
+      "V4",
+      "V5",
+      "V6"
+    ],
+    "description": "This is ECG Lead {name}, it has mean {mean} and std {std}:",
+    "statFormat": "%.4f"
+  },
+  "prompt": {
+    "pre": "You are an expert cardiologist analyzing an ECG (electrocardiogram). \n\nClinical Context: {clinicalContext}\n\nYour task is to examine the ECG signal and answer the following medical question:\n\nQuestion: {question}\n\nInstructions:\n- Begin by analyzing the time series without assuming a specific answer.\n- Think step-by-step about what the observed patterns suggest regarding the cardiac condition.\n- Write your rationale as a single, natural paragraph — do not use bullet points, numbered steps, or section headings.\n- Do **not** mention any final answer until the very end.\n- Consider the ECG morphology, intervals, and any abnormalities that relate to the question.",
+    "post": "Based on your analysis of the ECG data, select your answer from the following options:\n{answerOptions}\n\n- Make sure that your last word is the answer. You MUST end your response with \"Answer: \"",
+    "postWithoutOptions": "Based on your analysis of the ECG data, provide your answer.\nMake sure that your last word is the answer. You MUST end your response with \"Answer: \"",
+    "answerOptionSeparator": ", ",
+    "answerCue": "Answer:"
+  },
+  "generation": {
+    "maxTokens": 400
+  },
+  "source": {
+    "repo": "OpenTSLM/llama-3.2-1b-ecg-sp",
+    "revision": "a8c28cd11744ab0ae7ed5ce5eb02fcaf82d97849",
+    "file": "model_checkpoint.pt",
+    "sha256": "02b392a9f22b9834a979523e1bbfd3412bfdd023cb2162b60b2a93fc438a08a2",
+    "converter": "tools/convert_checkpoint.py@a4a124d57da7"
+  }
+}

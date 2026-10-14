@@ -1,0 +1,50 @@
+{
+  "format": "pockettslm-checkpoint/1",
+  "task": "sleep-edf",
+  "baseModel": {
+    "id": "meta-llama/Llama-3.2-1B",
+    "revision": "4e20de362430cd3b72f300e6b0f18e50e7166e08",
+    "weightsSHA256": "68a2e4be76fa709455a60272fba8e512c02d81c46e6c671cc9449e374fd6809a",
+    "hiddenSize": 2048
+  },
+  "encoder": {
+    "patchSize": 4,
+    "embedDim": 128,
+    "maxPatches": 1024
+  },
+  "lora": {
+    "rank": 16,
+    "alpha": 32,
+    "keys": [
+      "q_proj",
+      "k_proj",
+      "v_proj",
+      "o_proj",
+      "gate_proj",
+      "up_proj",
+      "down_proj"
+    ]
+  },
+  "series": {
+    "normalization": "z-score",
+    "minStd": 1e-06,
+    "maxLength": 1500,
+    "description": "The following is the EEG time series, it has mean {mean} and std {std}:",
+    "statFormat": "%.4f"
+  },
+  "prompt": {
+    "pre": "You are given a 30-second EEG time series segment. Your task is to classify the sleep stage based on analysis of the data.\n\n            Instructions:\n            - Analyze the data objectively without presuming a particular label.\n            - Reason carefully and methodically about what the signal patterns suggest regarding sleep stage.\n            - Write your reasoning as a single, coherent paragraph. Do not use bullet points, lists, or section headers.\n            - Only reveal the correct class at the very end.\n            - Never state that you are uncertain or unable to classify the data. You must always provide a rationale and a final answer.",
+    "post": "Possible sleep stages are:\n        Wake, Non-REM stage 1, Non-REM stage 2, Non-REM stage 3, REM sleep, Movement\n\n        - Please now write your rationale. Make sure that your last word is the answer. You MUST end your response with \"Answer:",
+    "answerCue": "Answer:"
+  },
+  "generation": {
+    "maxTokens": 200
+  },
+  "source": {
+    "repo": "OpenTSLM/llama-3.2-1b-sleep-sp",
+    "revision": "1bd8744e27c0ccd16b2862a58a2e64f45d78cde1",
+    "file": "model_checkpoint.pt",
+    "sha256": "51397fd7954c7d4cd70d2dc6d62334669c1b8c22cc54968c18e1465f442c9896",
+    "converter": "tools/convert_checkpoint.py@a4a124d57da7"
+  }
+}

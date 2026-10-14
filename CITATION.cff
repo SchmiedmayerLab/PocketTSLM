@@ -1,5 +1,5 @@
 #
-# This source file is part of the Template Repository open-source project
+# This source file is part of the PocketTSLM open-source project
 #
 # SPDX-FileCopyrightText: 2026 Schmiedmayer Lab and the project authors (see CONTRIBUTORS.md)
 #
@@ -10,10 +10,11 @@ cff-version: 1.2.0
 message: "If you use this software, please cite it as below."
 type: software
 authors:
-- family-names: "Schmiedmayer"
-  given-names: "Paul"
-  orcid: "https://orcid.org/0000-0002-8607-9148"
-title: "Template Repository"
+- family-names: "Rosenblattl"
+  given-names: "Max"
+- family-names: "Krishnaswamy"
+  given-names: "Nikhil"
+title: "PocketTSLM"
 license: MIT
-url: "https://github.com/SchmiedmayerLab/TemplateRepository"
-repository-code: "https://github.com/SchmiedmayerLab/TemplateRepository"
+url: "https://github.com/SchmiedmayerLab/PocketTSLM"
+repository-code: "https://github.com/SchmiedmayerLab/PocketTSLM"

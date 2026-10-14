@@ -1,0 +1,191 @@
+{
+  "accuracy" : 0.5,
+  "correct" : 10,
+  "loraApplied" : true,
+  "maxNewTokens" : 400,
+  "parsed" : 20,
+  "rows" : [
+    {
+      "correct" : false,
+      "groundTruth" : "no",
+      "index" : 0,
+      "label" : "no",
+      "output" : "The ECG recording of this 82-year-old male patient shows several technical artifacts that can affect the interpretation of the tracing. The presence of baseline drift, static noise, and electrode artifacts are noted, which can obscure the clarity of the ECG signals. Burst noise, characterized by sudden, irregular, and high-amplitude spikes, is also evident in the recording. These artifacts can interfere with the accurate assessment of the ECG by distorting the waveform, making it challenging to evaluate the rhythm, rate, and morphology accurately. The presence of a pacemaker and extra beats further complicates the interpretation, as these can introduce additional electrical activity that may mimic or mask true cardiac events. Despite these challenges, the burst noise is a distinct feature that stands out, confirming its presence in this ECG. Answer: yes",
+      "predicted" : "yes",
+      "seconds" : 12.53
+    },
+    {
+      "correct" : false,
+      "groundTruth" : "above the normal range",
+      "index" : 1,
+      "label" : "above the normal range",
+      "output" : "The ECG recording for this 85-year-old female patient shows baseline drift, static noise, burst noise, and electrode artifacts, which can complicate the interpretation. Despite these artifacts, the presence of a pacemaker is noted, which may influence the rhythm and morphology of the ECG. The P wave duration is a critical parameter to assess, typically ranging from 0.08 to 0.10 seconds. In this ECG, the P waves appear consistent and regular across the leads, suggesting that the atrial depolarization is stable. The presence of extra beats may indicate ectopic activity, but this does not directly affect the P wave duration. Given the clinical context and the observed ECG patterns, the P wave duration is likely to fall within the normal range. Answer: none",
+      "predicted" : "none",
+      "seconds" : 11.53
+    },
+    {
+      "correct" : true,
+      "groundTruth" : "none",
+      "index" : 2,
+      "label" : "none",
+      "output" : "The ECG recording of this 25-year-old female patient shows baseline drift, static noise, burst noise, and electrode artifacts, which can complicate the interpretation. Despite these artifacts, the rhythm appears regular, and the rate is within normal limits. The presence of a pacemaker is noted, which may influence the ECG findings. The QRS complexes are consistent, and there are no significant ST-segment elevations or depressions, T-wave inversions, or pathological Q waves that would suggest myocardial infarction. The intervals, including PR, QRS, and QT, appear within normal ranges, and there are no signs of conduction disturbances such as bundle branch blocks or significant axis deviations. The extra beats detected could be due to pacemaker activity or benign ectopic beats, but they do not indicate myocardial infarction. Given the absence of ischemic changes and the presence of a pacemaker, the ECG does not show evidence of myocardial infarction. Answer: none",
+      "predicted" : "none",
+      "seconds" : 13.57
+    },
+    {
+      "correct" : true,
+      "groundTruth" : "no",
+      "index" : 3,
+      "label" : "no",
+      "output" : "The ECG recording shows a regular rhythm with consistent P waves preceding each QRS complex, indicating normal atrial activity and atrioventricular conduction. The QRS complexes are narrow, suggesting normal ventricular depolarization. The PR interval is within normal limits, and there is no evidence of atrioventricular block. The QT interval appears normal, and there are no signs of ischemia or infarction, such as ST segment elevation or depression. Despite the presence of baseline drift, static noise, burst noise, and electrode artifacts, the underlying cardiac activity remains interpretable. The presence of a pacemaker is noted, but there are no pacing spikes visible, suggesting the pacemaker may not be actively pacing at the time of recording. The extra beats detected could be premature atrial or ventricular contractions, but they do not appear to be frequent or organized enough to suggest a pathological arrhythmia. Overall, the ECG does not show any abnormal symptoms that would indicate a cardiac abnormality. Answer: no",
+      "predicted" : "no",
+      "seconds" : 13.68
+    },
+    {
+      "correct" : true,
+      "groundTruth" : "no",
+      "index" : 4,
+      "label" : "no",
+      "output" : "The ECG recording presents a 56-year-old male patient with a pacemaker, and the signal quality is affected by baseline drift, static noise, burst noise, and electrode artifacts. Despite these challenges, the ECG should be assessed for rhythm, rate, morphology, and intervals. The presence of a pacemaker can influence the rhythm, often resulting in paced beats, which may appear as regular spikes preceding the QRS complexes. The rhythm appears regular, and the rate is within normal limits. The QRS complexes are consistent, and there are no significant ST segment deviations or T wave abnormalities that would suggest ischemia or infarction. The intervals, including PR, QRS, and QT, appear within normal ranges, and there are no signs of conduction blocks or arrhythmias. The extra beats detected could be due to pacemaker activity or benign ectopic beats, but they do not indicate a pathological condition. Overall, the ECG does not show any diagnostic symptoms or uncertain symptoms that would suggest an acute or uncertain cardiac condition. Answer: no",
+      "predicted" : "no",
+      "seconds" : 14.08
+    },
+    {
+      "correct" : true,
+      "groundTruth" : "no",
+      "index" : 5,
+      "label" : "no",
+      "output" : "The ECG recording of the 72-year-old male patient shows the presence of a pacemaker, which is evident from the pacing spikes preceding the QRS complexes. The rhythm appears regular, and the rate is consistent with paced ventricular activity. Despite the presence of baseline drift, static noise, burst noise, and electrode artifacts, the underlying rhythm remains discernible. The QRS complexes are wide, which is typical for ventricular pacing, and there are no significant ST segment deviations or T wave abnormalities that would suggest ischemia or acute changes. The presence of extra beats during the recording could indicate occasional premature beats, but these do not appear to disrupt the overall pacing pattern. Given the clinical context of a pacemaker and the absence of acute ischemic changes or significant arrhythmias, the ECG does not show any form-related symptoms. Answer: no",
+      "predicted" : "no",
+      "seconds" : 12.14
+    },
+    {
+      "correct" : true,
+      "groundTruth" : "no",
+      "index" : 6,
+      "label" : "no",
+      "output" : "The ECG recording shows a regular rhythm with consistent R-R intervals, indicating a stable heart rate. The presence of a pacemaker is noted, which is evident from the pacing spikes preceding each QRS complex. These spikes suggest that the pacemaker is functioning correctly, maintaining a regular rhythm. Despite the presence of baseline drift, static noise, burst noise, and electrode artifacts, the underlying rhythm remains unaffected, and no significant arrhythmias are observed. The QRS complexes are uniform, and there are no signs of atrial fibrillation, flutter, or other arrhythmias. The extra beats detected during recording do not appear to disrupt the overall rhythm, likely due to the pacemaker's regulation. Given the clinical context of an elderly patient with a pacemaker, the ECG does not show any rhythm-related symptoms. Answer: no",
+      "predicted" : "no",
+      "seconds" : 11.76
+    },
+    {
+      "correct" : true,
+      "groundTruth" : "none of myocardial infarction",
+      "index" : 7,
+      "label" : "none of myocardial infarction",
+      "output" : "The ECG recording shows a regular rhythm with a pacemaker present, which is evident from the pacing spikes preceding each QRS complex. The QRS complexes are narrow, indicating proper ventricular capture by the pacemaker. There is no evidence of ST-segment elevation or depression, which are typical indicators of acute myocardial infarction. The T waves appear normal without inversion or hyperacute changes. Despite the presence of baseline drift, static noise, and electrode artifacts, the overall morphology of the ECG does not suggest acute ischemic changes. The presence of extra beats does not alter the interpretation significantly. Given the absence of ischemic changes such as ST-segment elevation or depression, and the presence of a pacemaker, the ECG does not indicate an acute or evolving myocardial infarction. Answer: none of myocardial infarction.",
+      "predicted" : "none of myocardial infarction",
+      "seconds" : 11.93
+    },
+    {
+      "correct" : false,
+      "groundTruth" : "left ventricular hypertrophy",
+      "index" : 8,
+      "label" : "left ventricular hypertrophy",
+      "output" : "The ECG recording of the 81-year-old male patient shows baseline drift, static noise, burst noise, and electrode artifacts, which can complicate interpretation. Despite these artifacts, the presence of a pacemaker is noted, which can influence the rhythm and morphology of the ECG. The rhythm appears regular, and the rate is consistent with pacemaker activity. The QRS complexes are wide, which is typical in paced rhythms, and there are no significant ST-segment elevations or depressions in the anterolateral leads (I, aVL, V3-V6) that would suggest acute ischemia. Instead, the ECG shows a pattern consistent with non-specific changes, such as slight ST-segment deviations that do not localize to a specific coronary artery territory. These changes can be attributed to the patient's age, underlying cardiac conditions, or the presence of a pacemaker. Given the absence of definitive ischemic patterns and the presence of non-specific alterations, the ECG findings are best described as non-specific ST changes. Answer: non-specific st changes.",
+      "predicted" : "non-specific st changes",
+      "seconds" : 14.61
+    },
+    {
+      "correct" : false,
+      "groundTruth" : "no",
+      "index" : 9,
+      "label" : "no",
+      "output" : "The ECG recording for the 82-year-old male patient shows baseline drift, static noise, burst noise, and electrode artifacts, which are indicative of various types of noise. Additionally, the presence of extra beats and a pacemaker can contribute to the complexity of the recording. These factors suggest that the ECG is affected by noise, which can impact the clarity and interpretation of the cardiac signals. Answer: yes",
+      "predicted" : "yes",
+      "seconds" : 7.8
+    },
+    {
+      "correct" : false,
+      "groundTruth" : "normal heart axis",
+      "index" : 10,
+      "label" : "normal heart axis",
+      "output" : "To determine the cardiac axis from the ECG, we need to analyze the QRS complexes in the limb leads. The cardiac axis is primarily assessed using leads I and aVF. In this ECG, lead I shows a predominantly positive QRS complex, indicating that the electrical activity is moving towards the left side of the heart. Lead aVF also shows a predominantly positive QRS complex, suggesting that the electrical activity is moving downward towards the feet. This combination of positive deflections in both leads I and aVF suggests that the heart's electrical axis is within the normal range. Despite the presence of baseline drift, static noise, burst noise, and electrode artifacts, the overall pattern of the QRS complexes in these leads remains interpretable. The presence of a pacemaker and extra beats does not appear to affect the axis determination in this context. Therefore, the ECG does not show extreme axis deviation. Answer: none",
+      "predicted" : "none",
+      "seconds" : 12.74
+    },
+    {
+      "correct" : true,
+      "groundTruth" : "no",
+      "index" : 11,
+      "label" : "no",
+      "output" : "The ECG recording of a 32-year-old male patient shows a regular rhythm with consistent QRS complexes across all leads. Despite the presence of baseline drift, static noise, burst noise, and electrode artifacts, the QRS complexes appear uniform in morphology and duration. The presence of a pacemaker is noted, but it does not seem to affect the QRS duration significantly. The QRS complexes are narrow, indicating normal ventricular depolarization. In a typical ECG, the normal QRS duration is between 70 to 100 milliseconds. Given the regularity and uniformity of the QRS complexes, it is reasonable to conclude that the QRS duration does not exceed the normal range. Answer: no",
+      "predicted" : "no",
+      "seconds" : 10.69
+    },
+    {
+      "correct" : false,
+      "groundTruth" : "yes",
+      "index" : 12,
+      "label" : "yes",
+      "output" : "The ECG shows the presence of a pacemaker, which can influence the interpretation of the rhythm and morphology. Despite the signal quality issues such as baseline drift, static noise, and electrode artifacts, the key features to assess for an old myocardial infarction include pathological Q waves, which are typically wider than 0.04 seconds and deeper than one-third of the R wave in the same lead. In this ECG, there are no significant Q waves observed across the leads that would suggest an old myocardial infarction. The presence of extra beats may be related to the pacemaker or other benign causes rather than ischemic changes. Given the absence of pathological Q waves and the presence of pacemaker artifacts, the ECG does not indicate an old myocardial infarction. Answer: no",
+      "predicted" : "no",
+      "seconds" : 11.53
+    },
+    {
+      "correct" : true,
+      "groundTruth" : "subendocardial injury in inferolateral leads",
+      "index" : 13,
+      "label" : "subendocardial injury in inferolateral leads",
+      "output" : "The ECG recording of this 72-year-old male patient shows several important features that need to be considered. The presence of a pacemaker is noted, which can influence the interpretation of the ECG, particularly in terms of rhythm and pacing spikes. The baseline drift and noise artifacts present in the recording can obscure some of the finer details, but key observations can still be made. The leads of interest for inferolateral ischemia are II, III, aVF, V5, and V6. In these leads, there is evidence of ST-segment depression, which is indicative of subendocardial ischemia or injury. This pattern is consistent with subendocardial injury rather than transmural infarction, which would typically present with ST-segment elevation. The absence of significant Q waves or ST elevation in the inferior leads further supports this interpretation. Additionally, the presence of extra beats may complicate the rhythm analysis, but the primary concern here is the ST-segment changes. Given these observations, the ECG findings align more closely with subendocardial injury in the inferolateral leads. Answer: subendocardial injury in inferolateral leads.",
+      "predicted" : "subendocardial injury in inferolateral leads",
+      "seconds" : 15.9
+    },
+    {
+      "correct" : false,
+      "groundTruth" : "unknown stage of myocardial infarction",
+      "index" : 14,
+      "label" : "unknown stage of myocardial infarction",
+      "output" : "The ECG shows evidence of myocardial infarction, characterized by specific changes in the ST segment and T wave morphology. In the early stage of myocardial infarction, one might expect to see ST segment elevation, which is a hallmark of acute ischemia. The presence of a pacemaker can complicate the interpretation, but the key indicators of early myocardial infarction include ST elevation without significant Q waves, which can be seen in the context of acute coronary syndrome. The baseline drift and noise present in the recording do not obscure these critical findings. The clinical context of an 82-year-old male with a pacemaker and the presence of extra beats further supports the likelihood of acute ischemic changes. Therefore, the ECG findings are consistent with the early stage of myocardial infarction. Answer: early stage of myocardial infarction.",
+      "predicted" : "early stage of myocardial infarction",
+      "seconds" : 12.38
+    },
+    {
+      "correct" : false,
+      "groundTruth" : "yes",
+      "index" : 15,
+      "label" : "yes",
+      "output" : "The ECG recording shows a regular rhythm with consistent P waves preceding each QRS complex, indicating a sinus rhythm. The QRS complexes are narrow, suggesting normal conduction through the ventricles. There are no premature beats or irregularities that would suggest the presence of supraventricular extrasystoles. The baseline drift and noise artifacts do not obscure the identification of the rhythm as regular. The presence of a pacemaker is noted, but it does not appear to be influencing the rhythm in a way that would suggest supraventricular extrasystoles. The extra beats detected during recording do not exhibit the characteristics of supraventricular extrasystoles, such as a wide QRS complex or compensatory pause. Therefore, based on the analysis of the ECG, there are no supraventricular extrasystoles present. Answer: no",
+      "predicted" : "no",
+      "seconds" : 12.11
+    },
+    {
+      "correct" : true,
+      "groundTruth" : "no",
+      "index" : 16,
+      "label" : "no",
+      "output" : "The ECG recording presents a 39-year-old female patient with a pacemaker, and the signal quality is affected by baseline drift, static noise, burst noise, and electrode artifacts. Despite these issues, the ECG should be assessed for rhythm, rate, morphology, and intervals. The presence of a pacemaker can influence the rhythm, often resulting in paced beats, which may appear as regular spikes preceding the QRS complexes. The rhythm appears regular, and the rate is within normal limits. The QRS complexes are consistent, and there are no significant ST segment deviations or T wave abnormalities that would suggest ischemia or infarction. The intervals, including PR, QRS, and QT, appear within normal ranges, and there are no signs of conduction blocks or arrhythmias. The extra beats detected could be due to pacemaker activity or benign ectopic beats, but they do not indicate a pathological condition. Overall, the ECG does not show any diagnostic symptoms that would suggest a cardiac abnormality. Answer: no",
+      "predicted" : "no",
+      "seconds" : 13.73
+    },
+    {
+      "correct" : false,
+      "groundTruth" : "lead i",
+      "index" : 17,
+      "label" : "lead I",
+      "output" : "The ECG recording of the 73-year-old male patient shows baseline drift, static noise, burst noise, and electrode artifacts, which can complicate the interpretation. The presence of a pacemaker is noted, which may affect the rhythm and morphology of the ECG. Despite these challenges, a systematic analysis of the ECG should focus on identifying any abnormalities in the T wave morphology across all leads. In lead aVL, the T wave appears consistent and does not exhibit significant abnormalities that would be considered non-diagnostic. The T wave in lead aVL maintains a normal upright configuration, and there are no signs of inversion, flattening, or other atypical features that would suggest ischemia or other pathological changes. Given the presence of noise and artifacts, careful attention is required, but the T wave in lead aVL does not show non-diagnostic abnormalities. Therefore, based on the observed patterns and despite the presence of noise, the correct answer is determined. Answer: none",
+      "predicted" : "none",
+      "seconds" : 13.27
+    },
+    {
+      "correct" : true,
+      "groundTruth" : "baseline drift",
+      "index" : 18,
+      "label" : "baseline drift",
+      "output" : "In analyzing the ECG, particularly focusing on lead V2, we must consider the types of noise that can affect the recording. Baseline drift is characterized by a slow, wandering movement of the baseline, which can be due to factors such as patient movement, breathing, or poor electrode contact. Static noise, on the other hand, appears as rapid, irregular fluctuations that can be caused by electrical interference or poor grounding. In lead V2, the pattern observed is consistent with baseline drift, as the baseline appears to move gradually over time rather than exhibiting the rapid, erratic fluctuations typical of static noise. This suggests that the noise is due to baseline drift rather than static noise. Answer: baseline drift.",
+      "predicted" : "baseline drift",
+      "seconds" : 10.69
+    },
+    {
+      "correct" : false,
+      "groundTruth" : "yes",
+      "index" : 19,
+      "label" : "yes",
+      "output" : "The ECG recording shows a regular rhythm with consistent pacing spikes preceding each QRS complex, indicating the presence of a functioning pacemaker. The QRS complexes are narrow, suggesting appropriate ventricular capture by the pacemaker. There is no evidence of acute ischemic changes such as ST-segment elevation or depression, and the T waves appear normal without inversion or hyperacute changes. The baseline drift and noise artifacts do not obscure the overall interpretation, as the rhythm remains discernible. The presence of extra beats, likely premature ventricular contractions, is noted but does not disrupt the overall pacing function. Given the patient's age and the presence of a pacemaker, the ECG findings are consistent with expected pacing patterns without additional abnormalities. Answer: no",
+      "predicted" : "no",
+      "seconds" : 11.06
+    }
+  ],
+  "sampleCount" : 20,
+  "seriesLength" : 1000
+}

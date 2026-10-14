@@ -1,169 +1,135 @@
 <!--
 
-This source file is part of the Template Repository open-source project
+This source file is part of the PocketTSLM open-source project
 
-SPDX-FileCopyrightText: 2026 Schmiedmayer Lab and the project authors (see CONTRIBUTORS.md)
+SPDX-FileCopyrightText: 2023 Schmiedmayer Lab and the project authors (see CONTRIBUTORS.md)
 
 SPDX-License-Identifier: MIT
 
 -->
 
-# Template Repository
+# PocketTSLM
 
-[![REUSE status](https://api.reuse.software/badge/github.com/SchmiedmayerLab/TemplateRepository)](https://api.reuse.software/info/github.com/SchmiedmayerLab/TemplateRepository)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/SchmiedmayerLab/TemplateRepository/blob/main/LICENSE.md)
+[![Build and Test](https://github.com/SchmiedmayerLab/PocketTSLM/actions/workflows/ci.yml/badge.svg)](https://github.com/SchmiedmayerLab/PocketTSLM/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE.md)
 
-Starting point for a new Schmiedmayer Lab repository. It ships the organization baseline —
-licensing, citation metadata, and the enforcement workflow — so a new project is compliant on its
-first commit rather than retrofitted later.
+**PocketTSLM** runs a soft-prompt time-series language model (OpenTSLM-SP) fully on-device with MLX Swift: the encoder, the projector and the LLM all execute on an iPhone, so physiological time series (ECG, EEG) can be interpreted in natural language without sending health data off the device. This repository holds the PocketTSLM Swift package, a demo app with the paper's accuracy evaluations and benchmarks, a command-line eval runner for the Mac, and the Python↔Swift parity tests.
 
-**Work through [Setting up a new repository](#setting-up-a-new-repository) before writing code.** It
-lists what to replace, which badges to add as the project grows, and the one place where ordering
-matters.
+The repository contains code only. Model weights and evaluation data are restored with `scripts/fetch_assets.sh`.
 
-## What is here
+## Repository layout
 
-| Path | Purpose |
-|---|---|
-| `.github/workflows/repository-standards.yml` | calls the shared checker: REUSE, Markdown links, and the repository surface |
-| `.github/dependabot.yml` | weekly GitHub Actions updates; add your language's ecosystem alongside |
-| `.gitignore` | carries an SPDX header, like every other file here |
-| `CITATION.cff` | citation metadata; Zenodo reads this at archive time |
-| `CONTRIBUTORS.md` | project authors referenced by the SPDX headers |
-| `LICENSE.md` | root licence, the only one GitHub and Zenodo detect |
-| `LICENSES/MIT.txt` | licence text for REUSE |
-| `REUSE.toml` | intentionally empty — see [As you add code](#3-as-you-add-code) |
+- `Package.swift` and `Sources/PocketTSLM/`: the Swift package, with checkpoint loading, prompt assembly, the encoder and projector, the embedding-primed Llama, generation, the dataset readers and the accuracy evaluation.
+- `Sources/pockettslm-cli/`: `pockettslm-cli eval`, which runs the accuracy evaluations on a Mac.
+- `Tests/PocketTSLMTests/`: unit and parity tests, their fixtures and the fixture generators.
+- `Tests/UITests/`: the demo app (`UITests.xcodeproj`, target `TestApp`, shown as "PocketTSLM Demo"), with on-device inference, accuracy evaluations and benchmarks.
+- `baselines/`: evaluation outputs that later changes must reproduce.
+- `benchmark-results/`: reference benchmark outputs from our run.
+- `scripts/`: asset restore and dataset export helpers.
+- `tools/`: the checkpoint converter and its task presets.
 
-Everything else — `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `SECURITY.md`, `SUPPORT.md`, issue and
-pull request templates — is inherited from
-[`SchmiedmayerLab/.github`](https://github.com/SchmiedmayerLab/.github) and must not be copied here.
+## Requirements
 
-## Setting up a new repository
+- macOS with Xcode 26 and an Apple-silicon iPhone, for the latency and memory numbers. MLX needs a real Metal GPU; in the simulator the app falls back to the CPU, which is only good for diagnostics.
+- For the demo app, a patched [Grove](https://github.com/SchmiedmayerLab/Grove) 0.1.7 next to this repository, at `../Grove-0.1.7-patched`. Grove 0.1.x's `Package.swift` fails to type-check in time on some Macs; the patch splits one `targets +=` statement into five and changes nothing else. Until a fixed Grove release exists:
+  ```
+  git clone --branch 0.1.7 https://github.com/SchmiedmayerLab/Grove.git ../Grove-0.1.7-patched
+  ```
+  then put a `]` and a new `targets += [` before each of the four last targets in the `#if canImport(Darwin)` block of its `Package.swift`.
+- Access to [`meta-llama/Llama-3.2-1B`](https://huggingface.co/meta-llama/Llama-3.2-1B), which is gated. The app downloads it on first launch, at the revision the checkpoints pin.
 
-Work through this top to bottom. Steps 1 and 2 take minutes; the rest happen as the project grows.
-The order matters in exactly one place — Zenodo, in step 5 — where getting it wrong produces a
-permanent, wrong DOI record.
+## Using the package
 
-### 1. Immediately after creating the repository
+Add the package, and mlx-swift-examples for `LLMModelFactory`, to your target. Until the repository is published, add PocketTSLM by local path; SwiftPM then names it after its folder:
 
-Replace `Template Repository` and `TemplateRepository` everywhere:
+```swift
+dependencies: [
+    .package(path: "../PocketTSLM"),
+    .package(url: "https://github.com/ml-explore/mlx-swift-examples", .upToNextMinor(from: "2.29.1"))
+],
+// in the target:
+dependencies: [
+    .product(name: "PocketTSLM", package: "PocketTSLM"),
+    .product(name: "MLXLLM", package: "mlx-swift-examples"),
+    .product(name: "MLXLMCommon", package: "mlx-swift-examples")
+]
+```
+
+Register the patched Llama before the first model load, load the base model and a checkpoint, and answer an input:
+
+```swift
+import MLXLLM
+import MLXLMCommon
+import PocketTSLM
+
+registerModelTypes()
+let base = try await LLMModelFactory.shared.loadContainer(configuration: ModelConfiguration(directory: llamaFolder))
+let model = try TSLM(base: base, checkpoint: TSLMCheckpoint(directory: checkpointFolder))
+let answer = try await model.generate(TSLMInput(
+    series: ECG.twelveLeads(fromLeadI: voltages, samplingRate: 512),
+    context: [
+        "clinicalContext": "Single-lead ambulatory ECG recording (Lead I equivalent, replicated across the standard 12 leads).",
+        "question": "Is the cardiac rhythm shown in this ECG consistent with atrial fibrillation?"
+    ],
+    answerOptions: ["yes", "no"]
+))
+```
+
+The checkpoint's `config.json` holds the task's prompt templates, whose placeholders `context` fills. A second checkpoint on the same base model swaps its LoRA adapter in. `checkpoint.prompt(for:)` shows the prompt an input becomes, and `model.generate(prompt)` also reports positions, timings and peak memory, with the series as soft prompt or, for the paper's baseline, as text (`seriesAs: .text`). The package uses Grove's MLX stack, mlx-swift 0.29.1, mlx-swift-examples 2.29.1 and swift-transformers 1.0, so it links into Grove apps.
+
+## Model files and data
+
+The checkpoints are conversions of the OpenTSLM-SP releases on Hugging Face, `OpenTSLM/llama-3.2-1b-sleep-sp` and `OpenTSLM/llama-3.2-1b-ecg-sp`. `tools/convert_checkpoint.py` writes a checkpoint folder with `encoder.safetensors`, `projector.safetensors` and `lora.safetensors` (byte for byte the weights of the paper's app), a `config.json` with the task's prompts, and a model card:
 
 ```bash
-NAME="My Project"      # human-readable title
-SLUG="MyProject"       # the GitHub repository name
-YEAR=$(date +%Y)
-grep -rl 'Template Repository\|TemplateRepository\|2026' . --exclude-dir=.git \
-  | xargs sed -i '' -e "s/TemplateRepository/$SLUG/g" -e "s/Template Repository/$NAME/g" \
-                    -e "s/SPDX-FileCopyrightText: 2026/SPDX-FileCopyrightText: $YEAR/g" \
-                    -e "s/Copyright (c) 2026/Copyright (c) $YEAR/g"
+uv run tools/convert_checkpoint.py --input model_checkpoint.pt --out <folder>/llama-3.2-1b-ecg-sp-mlx --task ecg-qa
 ```
 
-Then:
-
-- Add yourself to `CITATION.cff` and `CONTRIBUTORS.md`. The template ships one author because a
-  template has one; a real project lists everyone who wrote it.
-- Write the project description under the H1, above `## Contributing`.
-
-Do **not** add `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `SECURITY.md` or `SUPPORT.md`. They are
-inherited from `SchmiedmayerLab/.github`, and a local copy will drift. The standards workflow warns
-if it finds one.
-
-### 2. Turn the checks on
-
-`.github/workflows/repository-standards.yml` already runs on every pull request and on pushes to
-`main`. After its first run, add **Check Repository Standards** to the repository's required status
-checks — a check that only reports is a check people learn to ignore.
-
-Verify locally before pushing:
+The demo app bundles the checkpoints from `Tests/UITests/Checkpoints/` and the evaluation data from `Tests/UITests/EvalData/`, which git ignores. Restore them with
 
 ```bash
-reuse lint          # brew install reuse
-actionlint          # brew install actionlint
+scripts/fetch_assets.sh --checkpoints <folder with llama-3.2-1b-{sleep,ecg}-sp-mlx> <source>
 ```
 
-### 3. As you add code
+where `<source>` is laid out like the paper artifact's `PocketTSLM/Supporting Files`, with the Sleep-EDF exports (`sleep_cot.csv`, `sleep_cot_test20.csv`) and the ECG-QA exports (`ecg_qa_cot_test.csv`, `ecg_qa_template_answers.json`, `ecg_qa_waveforms/`) in `OpenTSLM/`. The script checks every file against `scripts/assets.sha256`.
 
-**Every file gets an SPDX header.** Copy the style already in `README.md`, adjusted to the
-language's comment syntax:
+## Running the app
 
-```text
-SPDX-FileCopyrightText: <year> Schmiedmayer Lab and the project authors (see CONTRIBUTORS.md)
-SPDX-License-Identifier: MIT
+1. Open `Tests/UITests/UITests.xcodeproj` and select the `TestApp` scheme.
+2. Choose your development team under *Signing & Capabilities*. Do not commit it.
+3. Duplicate the scheme, untick *Shared*, and add the environment variable `HF_TOKEN` with a Hugging Face token whose account has accepted the Llama 3.2 license. Never commit the token. The first launch downloads the 2.5 GB base model into the app's Documents folder.
+4. Run on the iPhone.
+
+The task sheet offers single-sample runs (*EEG sample*, *ECG sample*, *My Watch ECG*). Under *Evaluations and benchmarks* it has the accuracy evaluations on 20 test samples each (*EEG eval (20)*, *ECG eval (20)*), the context-economics benchmarks (*EEG bench*, *ECG bench*) and repeated runs (*EEG var (5×)*, *ECG var (5×)*). Evaluations and benchmarks write JSON reports to the app's Documents folder: `opentslm_sleep_eval.json` and `opentslm_ecg_eval.json` with every generated output, `opentslm_context_economics[_ecg].json`, and `opentslm_repeated_{eeg,ecg}.json`.
+
+## Evaluations on the Mac
+
+`pockettslm-cli eval` runs a checkpoint's accuracy evaluation as the app does and writes the same report JSON. Build it with Xcode, which compiles MLX's Metal shaders, and run the binary from the build folder, `<DerivedData>/Build/Products/Debug/pockettslm-cli`:
+
+```bash
+xcodebuild -scheme pockettslm-cli -destination 'platform=macOS,arch=arm64,name=My Mac' build
+pockettslm-cli eval --base <Llama-3.2-1B folder> --checkpoint Tests/UITests/Checkpoints/llama-3.2-1b-sleep-sp-mlx \
+    --data Tests/UITests/EvalData --output opentslm_sleep_eval.json
 ```
 
-For files that cannot carry one — binaries, images, generated output, vendored dependencies — add
-an annotation to `REUSE.toml` instead of leaving them uncovered.
+`baselines/macos-mlx-0.29.1/` holds the outputs of both evaluations on the current MLX stack, which a run must reproduce exactly. `baselines/macos-mlx-0.21.3/` holds them on the paper's stack, and its README shows how to compare a run with them.
 
-Two things that are easy to get wrong:
+## Reproducing the paper
 
-- **Vendored third-party files keep their own licence.** A blanket MIT annotation over something
-  like a Gradle wrapper is a false claim. Give it its real licence and add the text to `LICENSES/`.
-- **Within `REUSE.toml` the last matching annotation wins.** Keep the blanket `path = ["**"]` entry
-  first and put specific overrides below it, or the specific entry is silently ignored.
+**Parity tests (§3).** Component-level Python↔Swift parity (encoder, projector, fused pipeline, RoPE, tokenizer, text serializer) against committed fixtures, no Python needed. Run them through Xcode, which compiles MLX's Metal shaders; `swift test` on the command line cannot:
 
-**Add a CI workflow** for the stack, then add its badge as the first entry in the block:
-
-```markdown
-[![Build and Test](https://github.com/SchmiedmayerLab/SLUG/actions/workflows/build-and-test.yml/badge.svg)](https://github.com/SchmiedmayerLab/SLUG/actions/workflows/build-and-test.yml)
+```bash
+xcodebuild test -scheme PocketTSLM-Package -destination 'platform=macOS,arch=arm64,name=My Mac'
 ```
 
-Badge order is fixed and enforced — **Build and Test · Deployment · CodeQL · Codecov · REUSE status ·
-License: MIT · Release · DOI**. Only add a badge for something the repository actually has; the
-checker fails a `CodeQL` badge with no `codeql.yml`, and vice versa.
+- The encoder and projector tests use small modules with seeded random weights.
+- The tokenizer test reads Meta's tokenizer from the Hugging Face cache (`~/.cache/huggingface/hub`, the revision the checkpoints pin) or from the folder in `POCKETTSLM_TOKENIZER_DIR`, and is skipped without it.
+- The real-weight ECG tests run the converted ECG checkpoint and only run with `POCKETTSLM_INTEGRATION=1`, which `xcodebuild` passes on as `TEST_RUNNER_POCKETTSLM_INTEGRATION=1`. They take the checkpoint from `POCKETTSLM_ECG_CHECKPOINT`, else from `Tests/UITests/Checkpoints/`, else from Hugging Face.
+- `Tests/PocketTSLMTests/generate_parity_fixtures.py` regenerates the encoder, projector and real-weight fixtures from the MLX Python reference.
 
-### 4. Register the external services
+Tolerances are max 1e-4 / mean 1e-5 (1e-3 for RoPE). The tests cover the pipeline that feeds the greedy decode (`Sources/PocketTSLM/LLM/Generation.swift`); the baselines check the decode end to end.
 
-> [!IMPORTANT]
-> **Ask Paul Schmiedmayer to register these.** The account that registers a service owns the record
-> it creates — the DOI, the coverage project, the REUSE entry. Registering from a personal account
-> ties the repository to whoever happened to set it up.
-
-- **REUSE** — <https://api.reuse.software/register>. Until this is done the badge reads
-  `unregistered`, which looks like a failure. Confirm with
-  `curl -s https://api.reuse.software/badge/github.com/SchmiedmayerLab/SLUG | grep unregistered`
-  returning nothing.
-- **Codecov** — activate at <https://app.codecov.io/gh/SchmiedmayerLab>. A public repository
-  uploads without a token, so enable coverage reporting wherever there is a test suite.
-- **Zenodo** — enable the repository at <https://zenodo.org/account/settings/github/>. Do this
-  **before** the first release.
-
-### 5. The first release
-
-The order here is the part worth reading twice.
-
-1. **Enable Zenodo first.** Only releases published *after* the integration is switched on are
-   archived. Existing tags are never picked up retroactively.
-2. **Land `CITATION.cff` before tagging.** Zenodo reads it from the tarball *at the tag*. Metadata
-   merged afterwards never appears in that DOI record, and the record cannot be edited into
-   correctness later.
-3. **Publish the release.**
-4. **Copy the concept DOI** from the Zenodo GitHub settings page into both the README badge and
-   `CITATION.cff` as `doi:`. Use the **concept DOI** — stable across every version — not the
-   per-version DOI, so the badge keeps tracking the newest release without edits.
-
-```markdown
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.CONCEPT_ID.svg)](https://doi.org/10.5281/zenodo.CONCEPT_ID)
-```
-
-Never use the legacy `zenodo.org/badge/<github-repo-id>.svg` form. It keeps rendering a
-plausible-looking badge when copied into another repository, which is how two repositories in this
-organization spent years advertising a DOI belonging to an unrelated project. The checker rejects
-it.
-
-The checker warns once a repository has releases but no DOI badge, so this step is hard to forget.
-
-### 6. Ongoing
-
-The standards workflow fails a pull request when a required file disappears, `CITATION.cff` stops
-parsing or its `url` stops matching the repository, a badge label drifts, badges fall out of order,
-a badge points at another repository, or the DOI in the README and in `CITATION.cff` disagree.
-
-> [!IMPORTANT]
-> **Everything below this line is fixed text and is identical in every repository** — the
-> Contributing, License, Citation and Our Research sections, and the footer images. Replace
-> `Template Repository` with the project name and leave the rest exactly as it is. The standards
-> workflow checks these sections, so an edit here fails the build; if the wording needs to change,
-> change it in `SchmiedmayerLab/.github` and it changes everywhere at once.
+**Benchmark (§4).** Run the app on an iPhone and tap **EEG bench** / **ECG bench**: each sweeps time-series tokens, time-to-first-token, and peak memory, and writes `opentslm_context_economics[_ecg].json` to the app's Documents folder. Our reference outputs (iPhone Air, iOS 26.4.1) are in `benchmark-results/`.
 
 ## Contributing
 

@@ -1,0 +1,41 @@
+{
+  "configurations" : [
+    {
+      "id" : "C09564A7-AD6A-4C37-8A71-376B9F6C7854",
+      "name" : "Test Scheme Action",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "commandLineArgumentEntries" : [
+      {
+        "argument" : "-com.apple.CoreData.SQLDebug 1  ",
+        "enabled" : false
+      }
+    ],
+    "targetForVariableExpansion" : {
+      "containerPath" : "container:UITests.xcodeproj",
+      "identifier" : "440071A72CFD092300DC7C5A",
+      "name" : "TestApp"
+    }
+  },
+  "testTargets" : [
+    {
+      "target" : {
+        "containerPath" : "container:UITests.xcodeproj",
+        "identifier" : "657F8C0D2DCAB0DE00BE4C4E",
+        "name" : "TestAppTests"
+      }
+    },
+    {
+      "target" : {
+        "containerPath" : "container:UITests.xcodeproj",
+        "identifier" : "657F8C1A2DCAB0F500BE4C4E",
+        "name" : "TestAppUITests"
+      }
+    }
+  ],
+  "version" : 1
+}

@@ -1,0 +1,39 @@
+#
+# This source file is part of the PocketTSLM open-source project
+#
+# SPDX-FileCopyrightText: 2026 Schmiedmayer Lab and the project authors (see CONTRIBUTORS.md)
+#
+# SPDX-License-Identifier: MIT
+#
+
+excluded:
+  - .build
+  - .swiftpm
+  - .derivedData
+  - Tests/UITests/.derivedData
+  # A copy of mlx-swift-examples' Llama.swift, kept close to upstream so patches stay reviewable.
+  - Sources/PocketTSLM/LLM/EmbeddingLlamaModel.swift
+
+disabled_rules:
+  - blanket_disable_command
+
+line_length:
+  warning: 150
+  error: 150
+
+vertical_whitespace:
+  max_empty_lines: 2
+
+trailing_whitespace:
+  ignores_empty_lines: true
+  ignores_comments: true
+
+nesting:
+  # TSLMCheckpoint.Configuration mirrors the nested sections of a checkpoint's config.json.
+  type_level: 2
+
+identifier_name:
+  excluded:
+    - id
+    # The input of a layer, as in the Python reference and MLX itself.
+    - x
