@@ -1,4 +1,12 @@
 #!/usr/bin/env bash
+#
+# This source file is part of the PocketTSLM open-source project
+#
+# SPDX-FileCopyrightText: 2026 Schmiedmayer Lab and the project authors (see CONTRIBUTORS.md)
+#
+# SPDX-License-Identifier: MIT
+#
+
 # Export iOS ECG-QA CoT CSV prefix + PTB-XL waveform sidecar from OpenTSLM loader.
 set -euo pipefail
 
