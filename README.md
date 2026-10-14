@@ -10,6 +10,9 @@ SPDX-License-Identifier: MIT
 
 # PocketTSLM
 
+[![Build and Test](https://github.com/SchmiedmayerLab/PocketTSLM/actions/workflows/ci.yml/badge.svg)](https://github.com/SchmiedmayerLab/PocketTSLM/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE.md)
+
 **PocketTSLM** runs a soft-prompt time-series language model (OpenTSLM-SP) fully on-device with MLX Swift: the encoder, the projector and the LLM all execute on an iPhone, so physiological time series (ECG, EEG) can be interpreted in natural language without sending health data off the device. This repository holds the PocketTSLM Swift package, a demo app with the paper's accuracy evaluations and benchmarks, a command-line eval runner for the Mac, and the Python↔Swift parity tests.
 
 The repository contains code only. Model weights and evaluation data are restored with `scripts/fetch_assets.sh`.
@@ -128,6 +131,21 @@ Tolerances are max 1e-4 / mean 1e-5 (1e-3 for RoPE). The tests cover the pipelin
 
 **Benchmark (§4).** Run the app on an iPhone and tap **EEG bench** / **ECG bench**: each sweeps time-series tokens, time-to-first-token, and peak memory, and writes `opentslm_context_economics[_ecg].json` to the app's Documents folder. Our reference outputs (iPhone Air, iOS 26.4.1) are in `benchmark-results/`.
 
+## Contributing
+
+Contributions to this project are welcome. Please make sure to read the [contribution guidelines](https://github.com/SchmiedmayerLab/.github/blob/main/CONTRIBUTING.md) and the [contributor covenant code of conduct](https://github.com/SchmiedmayerLab/.github/blob/main/CODE_OF_CONDUCT.md) first. You can find a list of contributors in the [CONTRIBUTORS.md](CONTRIBUTORS.md) file.
+
 ## License
 
-MIT, see `LICENSE.md`.
+This project is licensed under the MIT License. See [LICENSE.md](LICENSE.md) for more information.
+
+## Citation
+
+If you use this software, please cite it using the metadata in [CITATION.cff](CITATION.cff), which GitHub surfaces through the [*Cite this repository*](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-citation-files) button.
+
+## Our Research
+
+For more information, visit the [Schmiedmayer Lab GitHub organization](https://github.com/SchmiedmayerLab).
+
+![Schmiedmayer Lab](https://raw.githubusercontent.com/SchmiedmayerLab/.github/main/assets/footer-light.png#gh-light-mode-only)
+![Schmiedmayer Lab](https://raw.githubusercontent.com/SchmiedmayerLab/.github/main/assets/footer-dark.png#gh-dark-mode-only)
