@@ -6,8 +6,15 @@
 # SPDX-License-Identifier: MIT
 #
 
-# Swift Package Manager
-.swiftpm
+# Swift Package Manager; keep the shared PocketTSLM scheme, which CI tests with
+.swiftpm/*
+!.swiftpm/xcode
+.swiftpm/xcode/*
+!.swiftpm/xcode/xcshareddata
+.swiftpm/xcode/xcshareddata/*
+!.swiftpm/xcode/xcshareddata/xcschemes
+.swiftpm/xcode/xcshareddata/xcschemes/*
+!.swiftpm/xcode/xcshareddata/xcschemes/PocketTSLM.xcscheme
 .derivedData
 .build
 

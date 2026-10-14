@@ -11,6 +11,7 @@ path = [
     "baselines/**/*.json",
     "benchmark-results/*.json",
     "Package.resolved",
+    ".swiftpm/xcode/xcshareddata/xcschemes/PocketTSLM.xcscheme",
 ]
 SPDX-FileCopyrightText = "2026 Schmiedmayer Lab and the project authors (see CONTRIBUTORS.md)"
 SPDX-License-Identifier = "MIT"
