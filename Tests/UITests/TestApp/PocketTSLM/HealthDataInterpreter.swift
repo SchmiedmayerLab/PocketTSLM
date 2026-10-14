@@ -158,7 +158,8 @@ class HealthDataInterpreter: DefaultInitializable, Module, EnvironmentAccessible
                     response: "No ECG recording with voltage data was found. Record one with the ECG app on your Apple Watch, then try again."
                 )
             }
-            logger.info("ecgFromHealthKit: voltages=\(ecg.voltages.count, privacy: .public) freq=\(ecg.samplingFrequency ?? -1, privacy: .public) class=\(ecg.classification, privacy: .public)")
+            let recording = "voltages=\(ecg.voltages.count) freq=\(ecg.samplingFrequency ?? -1) class=\(ecg.classification)"
+            logger.info("ecgFromHealthKit: \(recording, privacy: .public)")
 
             let analysis = try await openTSLMInferenceService.runECGInference(
                 voltages: ecg.voltages,
@@ -168,7 +169,8 @@ class HealthDataInterpreter: DefaultInitializable, Module, EnvironmentAccessible
             let recorded = ecg.startDate.formatted(date: .abbreviated, time: .shortened)
             let heartRate = ecg.averageHeartRate.map { " · \(Int($0)) bpm" } ?? ""
             return ChatTurn(
-                prompt: "Analyze my Apple Watch ECG recorded \(recorded)\(heartRate) (\(ecg.voltages.count) samples, \(Int(ecg.samplingFrequency ?? 512)) Hz, classification: \(ecg.classification)).",
+                prompt: "Analyze my Apple Watch ECG recorded \(recorded)\(heartRate) (\(ecg.voltages.count) samples, "
+                    + "\(Int(ecg.samplingFrequency ?? 512)) Hz, classification: \(ecg.classification)).",
                 response: analysis
             )
         } catch {

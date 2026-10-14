@@ -99,19 +99,21 @@ public final class OpenTSLMBenchmark {
         var rows: [LengthComparison] = []
         for length in lengths {
             let truncated = Self.truncate(sample, to: length)
-            let sp = await runArm(.softPrompt, sample: truncated, maxTokens: maxTokens, maxPromptPositions: maxPromptPositions)
+            let softPrompt = await runArm(.softPrompt, sample: truncated, maxTokens: maxTokens, maxPromptPositions: maxPromptPositions)
             GPU.clearCache()
-            let txt = await runArm(.text, sample: truncated, maxTokens: maxTokens, maxPromptPositions: maxPromptPositions)
+            let text = await runArm(.text, sample: truncated, maxTokens: maxTokens, maxPromptPositions: maxPromptPositions)
             GPU.clearCache()
 
-            let compression = sp.timeSeriesPositions > 0
-                ? Double(txt.timeSeriesPositions) / Double(sp.timeSeriesPositions)
+            let compression = softPrompt.timeSeriesPositions > 0
+                ? Double(text.timeSeriesPositions) / Double(softPrompt.timeSeriesPositions)
                 : 0   // 0 = undefined; keeps the report JSON-encodable (no NaN)
             let comparison = LengthComparison(
                 seriesLength: truncated.series.first?.count ?? length,
-                softPrompt: sp, textSerialized: txt, positionCompression: compression)
+                softPrompt: softPrompt, textSerialized: text, positionCompression: compression)
             rows.append(comparison)
-            self.logger.info("benchmark L=\(comparison.seriesLength, privacy: .public): text=\(comparison.textSerialized.promptPositions, privacy: .public) pos, sp=\(comparison.softPrompt.promptPositions, privacy: .public) pos, compression=\(comparison.positionCompression, privacy: .public)x")
+            let line = "benchmark L=\(comparison.seriesLength): text=\(comparison.textSerialized.promptPositions) pos, "
+                + "sp=\(comparison.softPrompt.promptPositions) pos, compression=\(comparison.positionCompression)x"
+            self.logger.info("\(line, privacy: .public)")
         }
 
         let (textMax, spMax) = Self.contextCeiling(rows: rows, contextWindow: contextWindow)
@@ -188,17 +190,17 @@ extension OpenTSLMBenchmark.Report {
         lines.append("")
         lines.append("  L | text_pos  sp_pos | text_ts  sp_ts  compress | text_tot(s) sp_tot(s) | text_tps sp_tps | text_peakMB sp_peakMB")
         for row in rows {
-            let t = row.textSerialized
-            let s = row.softPrompt
+            let text = row.textSerialized
+            let soft = row.softPrompt
             func mb(_ bytes: Int) -> String { String(format: "%.0f", Double(bytes) / 1_048_576) }
             let numeric = String(
                 format: "%5d | %8d %7d | %7d %6d %8.1fx | %10.2f %9.2f | %8.1f %7.1f",
-                row.seriesLength, t.promptPositions, s.promptPositions,
-                t.timeSeriesPositions, s.timeSeriesPositions, row.positionCompression,
-                t.totalSeconds, s.totalSeconds, t.decodeTokensPerSecond, s.decodeTokensPerSecond)
-            lines.append("\(numeric) | \(mb(t.peakMemoryBytes)) \(mb(s.peakMemoryBytes))")
-            if t.didOOM { lines.append("        text arm: \(t.outputText)") }
-            if s.didOOM { lines.append("        soft-prompt arm: \(s.outputText)") }
+                row.seriesLength, text.promptPositions, soft.promptPositions,
+                text.timeSeriesPositions, soft.timeSeriesPositions, row.positionCompression,
+                text.totalSeconds, soft.totalSeconds, text.decodeTokensPerSecond, soft.decodeTokensPerSecond)
+            lines.append("\(numeric) | \(mb(text.peakMemoryBytes)) \(mb(soft.peakMemoryBytes))")
+            if text.didOOM { lines.append("        text arm: \(text.outputText)") }
+            if soft.didOOM { lines.append("        soft-prompt arm: \(soft.outputText)") }
         }
         lines.append("")
         lines.append("Context ceiling @ \(contextWindow) positions: "
