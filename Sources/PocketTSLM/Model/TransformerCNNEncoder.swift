@@ -100,9 +100,9 @@ class TransformerCNNEncoder: Module, UnaryLayer {
         var x = x.expandedDimensions(axis: -1)
         // Conv1d → [B, N, transformerInputDim]
         x = patchEmbed(x)
-        let n = x.dim(1)
+        let patches = x.dim(1)
         // Add positional embeddings sliced to actual patch count
-        x = x + posEmbed[0..., 0 ..< n, 0...]
+        x += posEmbed[0..., 0 ..< patches, 0...]
         x = inputNorm(x)
         for layer in layers {
             x = layer(x)

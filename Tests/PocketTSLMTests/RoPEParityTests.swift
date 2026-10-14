@@ -36,10 +36,10 @@ final class RoPEParityTests: XCTestCase {
             throw XCTSkip("rope_io.safetensors missing — run generate_parity_fixtures.py rope")
         }
         try Device.withDefaultDevice(.cpu) {
-            let a = try loadArrays(url: ioURL)
-            let x = a["x"]!
-            let llama3Freqs = a["llama3_freqs"]!
-            let meta = a["meta"]!.asArray(Int32.self)
+            let arrays = try loadArrays(url: ioURL)
+            let x = arrays["x"]!
+            let llama3Freqs = arrays["llama3_freqs"]!
+            let meta = arrays["meta"]!.asArray(Int32.self)
             let dims = Int(meta[0]); let offset = Int(meta[1])
 
             // Mirror EmbeddingLlamaModel's DynamicNTKScalingRoPE: base=nil + custom freqs.
@@ -52,14 +52,17 @@ final class RoPEParityTests: XCTestCase {
                 offset: offset, freqs: nil)
             eval(swiftLlama3, swiftDefault)
 
-            func maxDiff(_ p: MLXArray, _ q: MLXArray) -> Float {
-                let d = (p - q).abs().max(keepDims: false); eval(d); return d.item(Float.self)
+            func maxDiff(_ lhs: MLXArray, _ rhs: MLXArray) -> Float {
+                let difference = (lhs - rhs).abs().max(keepDims: false)
+                eval(difference)
+                return difference.item(Float.self)
             }
 
-            let llama3VsExact = maxDiff(swiftLlama3, a["out_llama3"]!)
-            let defaultVsExact = maxDiff(swiftDefault, a["out_default"]!)
+            let llama3VsExact = maxDiff(swiftLlama3, arrays["out_llama3"]!)
+            let defaultVsExact = maxDiff(swiftDefault, arrays["out_default"]!)
             let llama3VsDefault = maxDiff(swiftLlama3, swiftDefault)
-            print("RoPE: swiftLlama3-vs-exact=\(llama3VsExact)  swiftDefault-vs-exact=\(defaultVsExact)  swiftLlama3-vs-swiftDefault=\(llama3VsDefault)")
+            print("RoPE: swiftLlama3-vs-exact=\(llama3VsExact)  swiftDefault-vs-exact=\(defaultVsExact)  "
+                + "swiftLlama3-vs-swiftDefault=\(llama3VsDefault)")
 
             // If the custom-freqs path works, swiftLlama3 matches the exact llama3 rope…
             XCTAssertLessThan(llama3VsExact, 1e-3, "MLXFast.RoPE with custom freqs ≠ exact llama3 RoPE")

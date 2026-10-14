@@ -39,16 +39,16 @@ public struct TSLMGeneration: Sendable {
 extension EmbeddingLlamaModel {
     /// Answers `prompt` with greedy decoding, as OpenTSLM-MLX's `opentslm_sp.py` does: argmax with no
     /// temperature, top-p or repetition penalty, until a Llama 3 stop token or `maxTokens`.
-    /// - Parameter projected: The projected series for ``SeriesEncoding/softPrompt``.
+    /// - Parameter projected: The projected series of a ``SeriesEncoding/softPrompt``, or `nil` to read
+    ///   the series as text (``SeriesEncoding/text``).
     func generate(
         _ prompt: TSLMPrompt,
-        projected: [MLXArray],
-        encoding: SeriesEncoding,
+        projected: [MLXArray]?,
         tokenizer: Tokenizer,
         maxTokens: Int,
         maxPromptPositions: Int?
     ) throws -> TSLMGeneration {
-        let (embedding, seriesPositions) = promptEmbedding(prompt, projected: projected, encoding: encoding, tokenizer: tokenizer)
+        let (embedding, seriesPositions) = promptEmbedding(prompt, projected: projected, tokenizer: tokenizer)
         let promptPositions = embedding.dim(1)
         // Checked before `eval`, so a skipped prompt is never materialised: on iOS, running out of
         // memory ends the app instead of throwing.
@@ -114,8 +114,7 @@ extension EmbeddingLlamaModel {
     /// without BOS.
     private func promptEmbedding(
         _ prompt: TSLMPrompt,
-        projected: [MLXArray],
-        encoding: SeriesEncoding,
+        projected: [MLXArray]?,
         tokenizer: Tokenizer
     ) -> (embedding: MLXArray, seriesPositions: Int) {
         func embed(_ text: String, addSpecialTokens: Bool = true) -> MLXArray {
@@ -128,9 +127,10 @@ extension EmbeddingLlamaModel {
         var seriesPositions = 0
         for (index, description) in prompt.seriesDescriptions.enumerated() {
             segments.append(embed(description))
-            let series = switch encoding {
-            case .softPrompt: projected[index].asType(pre.dtype)
-            case .text: embed(TimeSeriesTextSerializer.serialize(prompt.series[index]), addSpecialTokens: false)
+            let series = if let projected {
+                projected[index].asType(pre.dtype)
+            } else {
+                embed(TimeSeriesTextSerializer.serialize(prompt.series[index]), addSpecialTokens: false)
             }
             segments.append(series)
             seriesPositions += series.dim(0)

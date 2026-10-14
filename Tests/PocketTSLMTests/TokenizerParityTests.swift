@@ -58,8 +58,8 @@ final class TokenizerParityTests: XCTestCase {
             let swiftIDs = tokenizer.encode(text: seg.text, addSpecialTokens: true)
             if swiftIDs != seg.ids {
                 mismatches.append(seg.name)
-                let n = min(swiftIDs.count, seg.ids.count)
-                let firstDiff = (0 ..< n).first { swiftIDs[$0] != seg.ids[$0] }
+                let common = min(swiftIDs.count, seg.ids.count)
+                let firstDiff = (0 ..< common).first { swiftIDs[$0] != seg.ids[$0] }
                 print("MISMATCH \(seg.name): swift n=\(swiftIDs.count) py n=\(seg.ids.count) "
                     + "firstDiff@\(firstDiff.map(String.init) ?? "len") "
                     + "swift5=\(Array(swiftIDs.prefix(5))) py5=\(Array(seg.ids.prefix(5)))")

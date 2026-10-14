@@ -48,8 +48,8 @@ public enum ECG {
         }
         let mean = values.reduce(0, +) / Double(values.count)
         let variance = values.reduce(0) { partial, value in
-            let d = value - mean
-            return partial + d * d
+            let deviation = value - mean
+            return partial + deviation * deviation
         } / Double(values.count)
         return (mean, max(sqrt(variance), 1e-6))
     }

@@ -73,7 +73,7 @@ public struct ECGQACoTDataset {
                 userInfo: [
                     NSLocalizedDescriptionKey:
                         "Missing or invalid PTB-XL waveform for ecg_id \(ecgId) under \(waveformsDirectory.path). "
-                        + "Run scripts/export_ecg_qa_ios_assets.py to regenerate loader waveforms.",
+                        + "Run scripts/export_ecg_qa_ios_assets.py to regenerate loader waveforms."
                 ]
             )
         }

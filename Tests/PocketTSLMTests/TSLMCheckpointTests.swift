@@ -48,7 +48,7 @@ final class TSLMCheckpointTests: XCTestCase {
             let folder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
             try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
             defer { try? FileManager.default.removeItem(at: folder) }
-            let changed = String(decoding: source, as: UTF8.self).replacingOccurrences(of: old, with: new)
+            let changed = try XCTUnwrap(String(bytes: source, encoding: .utf8)).replacingOccurrences(of: old, with: new)
             try Data(changed.utf8).write(to: folder.appendingPathComponent("config.json"))
             XCTAssertThrowsError(try TSLMCheckpoint(directory: folder))
         }

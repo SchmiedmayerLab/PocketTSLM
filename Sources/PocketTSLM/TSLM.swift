@@ -48,7 +48,7 @@ public final class TSLM {
         maxPromptPositions: Int? = nil
     ) async throws -> TSLMGeneration {
         let maxTokens = maxTokens ?? checkpoint.configuration.generation.maxTokens
-        let projected = encoding == .softPrompt ? pipeline.projectTimeSeries(prompt.series) : []
+        let projected = encoding == .softPrompt ? pipeline.projectTimeSeries(prompt.series) : nil
         GPU.clearCache()
         let lora = checkpoint.configuration.lora
         let loraURL = checkpoint.loraURL
@@ -64,7 +64,6 @@ public final class TSLM {
             return try model.generate(
                 prompt,
                 projected: projected,
-                encoding: encoding,
                 tokenizer: context.tokenizer,
                 maxTokens: maxTokens,
                 maxPromptPositions: maxPromptPositions

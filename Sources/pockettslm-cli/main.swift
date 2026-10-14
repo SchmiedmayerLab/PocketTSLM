@@ -101,7 +101,8 @@ func evaluate(_ options: EvalOptions) async throws {
         let container = try await LLMModelFactory.shared.loadContainer(configuration: ModelConfiguration(directory: base))
         let model = try TSLM(base: container, checkpoint: checkpoint)
         return try await Evaluation.run(model, on: samples, maxTokens: options.maxTokens) { row in
-            printError("[\(row.index + 1)/\(samples.count)] gt=\(row.groundTruth ?? "nil") pred=\(row.predicted ?? "nil") \(row.correct ? "OK" : "X") \(row.seconds)s")
+            let verdict = row.correct ? "OK" : "X"
+            printError("[\(row.index + 1)/\(samples.count)] gt=\(row.groundTruth ?? "nil") pred=\(row.predicted ?? "nil") \(verdict) \(row.seconds)s")
         }
     }
     printError("accuracy: \(report.correct)/\(report.rows.count)   parsed: \(report.parsed)/\(report.rows.count)")

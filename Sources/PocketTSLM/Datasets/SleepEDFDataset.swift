@@ -42,7 +42,11 @@ private extension SleepEDFDataset {
         guard let timeSeriesIdx = columnIndex["time_series"],
               let labelIdx = columnIndex["label"]
         else {
-            throw NSError(domain: "SleepEDFDataset", code: 2, userInfo: [NSLocalizedDescriptionKey: "CSV must include 'time_series' and 'label' columns"])
+            throw NSError(
+                domain: "SleepEDFDataset",
+                code: 2,
+                userInfo: [NSLocalizedDescriptionKey: "CSV must include 'time_series' and 'label' columns"]
+            )
         }
 
         let rationaleIdx = columnIndex["rationale"]

@@ -135,14 +135,14 @@ enum OpenTSLMLoRA {
               let match = regex.firstMatch(in: key, range: NSRange(key.startIndex..., in: key)),
               match.numberOfRanges == 3,
               let layerRange = Range(match.range(at: 1), in: key),
-              let abRange = Range(match.range(at: 2), in: key)
+              let matrixRange = Range(match.range(at: 2), in: key)
         else {
             return nil
         }
 
         let layerPath = String(key[layerRange])
-        let ab = String(key[abRange]).lowercased()
-        let mlxKey = layerPath.hasPrefix("model.") ? "\(layerPath).\(ab)" : "model.\(layerPath).\(ab)"
+        let matrix = String(key[matrixRange]).lowercased()
+        let mlxKey = layerPath.hasPrefix("model.") ? "\(layerPath).\(matrix)" : "model.\(layerPath).\(matrix)"
         return (mlxKey, value.transposed())
     }
 }

@@ -41,7 +41,7 @@ final class OpenTSLMSPPipeline {
                 paddedRows.append(series)
                 continue
             }
-            var row = Array<Float>(repeating: 0, count: maxLength)
+            var row = [Float](repeating: 0, count: maxLength)
             row.replaceSubrange(0 ..< series.count, with: series)
             paddedRows.append(row)
         }
@@ -54,8 +54,8 @@ final class OpenTSLMSPPipeline {
 
         var result: [MLXArray] = []
         result.reserveCapacity(seriesBatch.count)
-        for i in 0 ..< seriesBatch.count {
-            result.append(projected[i])
+        for index in 0 ..< seriesBatch.count {
+            result.append(projected[index])
         }
         return result
     }

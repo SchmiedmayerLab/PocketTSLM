@@ -15,6 +15,9 @@ enum CSV {
     static func records(at url: URL) throws -> [[String]] {
         let handle = try FileHandle(forReadingFrom: url)
         defer { try? handle.close() }
+        // `String(decoding:)` on purpose: the 20 MB cut can split a UTF-8 sequence, which the failable
+        // initialiser would reject, and the cut tail is dropped below anyway.
+        // swiftlint:disable:next optional_data_string_conversion
         let text = String(decoding: try handle.read(upToCount: 20 * 1024 * 1024) ?? Data(), as: UTF8.self)
         return parse(String(text.prefix(upTo: text.lastIndex(of: "\n") ?? text.endIndex)))
     }
@@ -25,31 +28,31 @@ enum CSV {
         var field = ""
         var insideQuotes = false
 
-        var i = csv.startIndex
-        while i < csv.endIndex {
-            let ch = csv[i]
-            if ch == "\"" {
-                let nextIndex = csv.index(after: i)
+        var index = csv.startIndex
+        while index < csv.endIndex {
+            let character = csv[index]
+            if character == "\"" {
+                let nextIndex = csv.index(after: index)
                 if insideQuotes && nextIndex < csv.endIndex && csv[nextIndex] == "\"" {
                     field.append("\"")
-                    i = csv.index(after: nextIndex)
+                    index = csv.index(after: nextIndex)
                     continue
                 }
                 insideQuotes.toggle()
-                i = nextIndex
+                index = nextIndex
                 continue
             }
 
-            if ch == "," && !insideQuotes {
+            if character == "," && !insideQuotes {
                 row.append(field)
                 field.removeAll(keepingCapacity: true)
-                i = csv.index(after: i)
+                index = csv.index(after: index)
                 continue
             }
 
             // NB: Swift treats "\r\n" as a single Character (grapheme cluster), so a CRLF file
             // matches neither "\n" nor "\r" and the whole file collapses into one record.
-            if (ch == "\n" || ch == "\r" || ch == "\r\n") && !insideQuotes {
+            if (character == "\n" || character == "\r" || character == "\r\n") && !insideQuotes {
                 row.append(field)
                 field.removeAll(keepingCapacity: true)
                 if !row.isEmpty {
@@ -57,20 +60,20 @@ enum CSV {
                 }
                 row.removeAll(keepingCapacity: true)
 
-                if ch == "\r" {
-                    let nextIndex = csv.index(after: i)
+                if character == "\r" {
+                    let nextIndex = csv.index(after: index)
                     if nextIndex < csv.endIndex && csv[nextIndex] == "\n" {
-                        i = csv.index(after: nextIndex)
+                        index = csv.index(after: nextIndex)
                         continue
                     }
                 }
 
-                i = csv.index(after: i)
+                index = csv.index(after: index)
                 continue
             }
 
-            field.append(ch)
-            i = csv.index(after: i)
+            field.append(character)
+            index = csv.index(after: index)
         }
 
         if !field.isEmpty || !row.isEmpty {

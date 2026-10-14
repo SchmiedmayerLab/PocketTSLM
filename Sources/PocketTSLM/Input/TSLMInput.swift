@@ -27,8 +27,8 @@ public struct TimeSeries: Sendable {
         let count = Float(max(samples.count, 1))
         let mean = samples.reduce(0, +) / count
         let variance = samples.reduce(0) { partial, value in
-            let d = value - mean
-            return partial + d * d
+            let deviation = value - mean
+            return partial + deviation * deviation
         } / count
         let std = max(sqrt(variance), minStd)
         self.init(name: name, values: samples.map { ($0 - mean) / std }, mean: Double(mean), std: Double(std))

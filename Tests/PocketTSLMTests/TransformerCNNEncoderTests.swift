@@ -118,8 +118,8 @@ final class TransformerCNNEncoderTests: XCTestCase {
                 transformerInputDim: 16, numHeads: 2, numLayers: 2, patchSize: 4, ffDim: 32, maxPatches: 16
             )
             try encoder.loadWeights(from: fixturesURL.appendingPathComponent("tiny_encoder.safetensors"))
-            let io = try loadArrays(url: fixturesURL.appendingPathComponent("tiny_io.safetensors"))
-            assertParity(encoder(try XCTUnwrap(io["input"])), try XCTUnwrap(io["encoded"]), "encoder")
+            let arrays = try loadArrays(url: fixturesURL.appendingPathComponent("tiny_io.safetensors"))
+            assertParity(encoder(try XCTUnwrap(arrays["input"])), try XCTUnwrap(arrays["encoded"]), "encoder")
         }
     }
 }

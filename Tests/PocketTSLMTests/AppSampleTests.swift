@@ -75,7 +75,13 @@ final class AppSampleTests: XCTestCase {
     }
 
     func testSleepEDFSamplesMatchTheApp() throws {
-        let rows: [(count: Int, seed: UInt64, scale: Float, offset: Float)] = [(1500, 1, 2e-5, -1e-6), (1600, 2, 5e-5, 3e-6)]
+        struct Row {
+            let count: Int
+            let seed: UInt64
+            let scale: Float
+            let offset: Float
+        }
+        let rows = [Row(count: 1500, seed: 1, scale: 2e-5, offset: -1e-6), Row(count: 1600, seed: 2, scale: 5e-5, offset: 3e-6)]
         let checkpoint = try Self.checkpoint("sleep-edf")
         for (index, row) in rows.enumerated() {
             let series = TimeSeries(samples: Synthetic.series(count: row.count, seed: row.seed, scale: row.scale, offset: row.offset))
@@ -84,9 +90,20 @@ final class AppSampleTests: XCTestCase {
     }
 
     func testECGQASamplesMatchTheApp() throws {
-        let rows: [(ecgID: Int, question: String, context: String, options: [String])] = [
-            (101, "Does this ECG show sinus rhythm?", "A 63-year-old patient with palpitations.", ["yes", "no", "not sure"]),
-            (202, "What is the heart rhythm?", "12-lead ECG recording.", [])
+        struct Row {
+            let ecgID: Int
+            let question: String
+            let context: String
+            let options: [String]
+        }
+        let rows = [
+            Row(
+                ecgID: 101,
+                question: "Does this ECG show sinus rhythm?",
+                context: "A 63-year-old patient with palpitations.",
+                options: ["yes", "no", "not sure"]
+            ),
+            Row(ecgID: 202, question: "What is the heart rhythm?", context: "12-lead ECG recording.", options: [])
         ]
         let checkpoint = try Self.checkpoint("ecg-qa")
         for (index, row) in rows.enumerated() {
@@ -152,7 +169,8 @@ final class AppSampleTests: XCTestCase {
         }
         try """
         question,answer,template_id,question_type,ecg_id,rationale,clinical_context
-        Does this ECG show sinus rhythm?,yes,5,single-verify,[101],"Regular rhythm with upright P waves. Answer: yes",A 63-year-old patient with palpitations.
+        Does this ECG show sinus rhythm?,yes,5,single-verify,[101],"Regular rhythm with upright P waves. Answer: yes",\
+        A 63-year-old patient with palpitations.
         What is the heart rhythm?,sinus rhythm,9,single-query,202,"Normal P waves precede each QRS complex. Answer: sinus rhythm",
 
         """.write(to: folder.appendingPathComponent("ecg.csv"), atomically: true, encoding: .utf8)

@@ -63,8 +63,8 @@ final class MLPProjectorTests: XCTestCase {
         try Device.withDefaultDevice(.cpu) {
             let projector = MLPProjector(inputDim: 16, outputDim: 24)
             try projector.loadWeights(from: fixtures.appendingPathComponent("tiny_projector.safetensors"))
-            let io = try loadArrays(url: fixtures.appendingPathComponent("tiny_io.safetensors"))
-            assertParity(projector(try XCTUnwrap(io["encoded"])), try XCTUnwrap(io["projected"]), "projector")
+            let arrays = try loadArrays(url: fixtures.appendingPathComponent("tiny_io.safetensors"))
+            assertParity(projector(try XCTUnwrap(arrays["encoded"])), try XCTUnwrap(arrays["projected"]), "projector")
         }
     }
 }
